@@ -11,6 +11,7 @@
         PermissionFailure,
         UpgradeFailure,
         IncompatibleVersion,
+        IncompatibleApplication,
         FileNotFound
     }
 }

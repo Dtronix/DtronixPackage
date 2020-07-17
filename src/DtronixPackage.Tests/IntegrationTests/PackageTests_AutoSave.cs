@@ -1,11 +1,6 @@
 using System;
 using System.IO;
-using System.IO.Compression;
-using System.Linq;
 using System.Threading.Tasks;
-using NLog;
-using NLog.Config;
-using NLog.Targets;
 using NUnit.Framework;
 
 namespace DtronixPackage.Tests.IntegrationTests
@@ -14,12 +9,12 @@ namespace DtronixPackage.Tests.IntegrationTests
     {
 
         [Test]
-        public async Task CreatesAutoSaveFile()
+        public async Task CreatesAutoSavePackage()
         {
-            var tempSave = ZipFilename + ".temp";
-            var file = new PackageDynamicFile(new Version(1, 0), this, false, false)
+            var tempSave = PackageFilename + ".temp";
+            var file = new DynamicPackage(new Version(1, 0), this, false, false)
             {
-                TempFilePathRequest = () => tempSave
+                TempPackagePathRequest = () => tempSave
             };
             file.ContentModifiedOverride();
             await file.ConfigureAutoSave(0, -1);
@@ -29,28 +24,28 @@ namespace DtronixPackage.Tests.IntegrationTests
 
 
         [Test]
-        public async Task CreatesAutoSaveFileOnlyIfNotSavedSinceLastAutoSave()
+        public async Task CreatesAutoSavePackageOnlyIfNotSavedSinceLastAutoSave()
         {
-            var tempSave = ZipFilename + ".temp";
-            var file = new PackageDynamicFile(new Version(1,0), this, false, false)
+            var tempSave = PackageFilename + ".temp";
+            var file = new DynamicPackage(new Version(1,0), this, false, false)
             {
-                TempFilePathRequest = () => tempSave
+                TempPackagePathRequest = () => tempSave
             };
 
             file.ContentModifiedOverride();
-            await file.Save(ZipFilename);
+            await file.Save(PackageFilename);
             await file.ConfigureAutoSave(0, -1);
 
             await AssertFileDoesNotExistWithin(tempSave);
         }
 
         [Test]
-        public async Task SavesOnlyWhenFileIsModified()
+        public async Task SavesOnlyWhenPackageIsModified()
         {
-            var tempSave = ZipFilename + ".temp";
-            var file = new PackageDynamicFile(new Version(1,0), this, false, true)
+            var tempSave = PackageFilename + ".temp";
+            var file = new DynamicPackage(new Version(1,0), this, false, true)
             {
-                TempFilePathRequest = () => tempSave
+                TempPackagePathRequest = () => tempSave
             };
             await file.ConfigureAutoSave(0, -1);
             await AssertFileDoesNotExistWithin(tempSave);
@@ -65,10 +60,10 @@ namespace DtronixPackage.Tests.IntegrationTests
         [Test]
         public async Task SetsIsDataModifiedSinceAutoSaveToFalse()
         {
-            var tempSave = ZipFilename + ".temp";
-            var file = new PackageDataFile(new Version(1,0), this)
+            var tempSave = PackageFilename + ".temp";
+            var file = new DynamicPackageData(new Version(1,0), this)
             {
-                TempFilePathRequest = () => tempSave
+                TempPackagePathRequest = () => tempSave
             };
             file.Data.Children.Add(new PackageDataContractChild());
 
@@ -81,10 +76,10 @@ namespace DtronixPackage.Tests.IntegrationTests
         [Test]
         public void IsDataModifiedSinceAutoSaveIsModified()
         {
-            var tempSave = ZipFilename + ".temp";
-            var file = new PackageDataFile(new Version(1,0), this)
+            var tempSave = PackageFilename + ".temp";
+            var file = new DynamicPackageData(new Version(1,0), this)
             {
-                TempFilePathRequest = () => tempSave
+                TempPackagePathRequest = () => tempSave
             };
             Assert.IsFalse(file.IsDataModifiedSinceAutoSave);
             file.ContentModifiedOverride();
@@ -94,10 +89,10 @@ namespace DtronixPackage.Tests.IntegrationTests
         [Test]
         public async Task DoesNotChangeIsDataModified()
         {
-            var tempSave = ZipFilename + ".temp";
-            var file = new PackageDynamicFile(new Version(1,0), this, false, true)
+            var tempSave = PackageFilename + ".temp";
+            var file = new DynamicPackage(new Version(1,0), this, false, true)
             {
-                TempFilePathRequest = () => tempSave
+                TempPackagePathRequest = () => tempSave
             };
             file.ContentModifiedOverride();
             await file.ConfigureAutoSave(0, -1);
@@ -109,10 +104,10 @@ namespace DtronixPackage.Tests.IntegrationTests
         [Test]
         public async Task SavesAgainAfterDataIsModified()
         {
-            var tempSave = ZipFilename + ".temp";
-            var file = new PackageDynamicFile(new Version(1,0), this, false, true)
+            var tempSave = PackageFilename + ".temp";
+            var file = new DynamicPackage(new Version(1,0), this, false, true)
             {
-                TempFilePathRequest = () => tempSave
+                TempPackagePathRequest = () => tempSave
             };
 
             // Autosave once.
@@ -143,10 +138,10 @@ namespace DtronixPackage.Tests.IntegrationTests
         [Test]
         public async Task SavesAgainAfterTempFileIsDeleted()
         {
-            var tempSave = ZipFilename + ".temp";
-            var file = new PackageDynamicFile(new Version(1,0), this, false, true)
+            var tempSave = PackageFilename + ".temp";
+            var file = new DynamicPackage(new Version(1,0), this, false, true)
             {
-                TempFilePathRequest = () => tempSave
+                TempPackagePathRequest = () => tempSave
             };
 
             // Autosave once.

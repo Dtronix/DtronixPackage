@@ -1,11 +1,4 @@
 using System;
-using System.IO;
-using System.IO.Compression;
-using System.Linq;
-using System.Threading.Tasks;
-using NLog;
-using NLog.Config;
-using NLog.Targets;
 using NUnit.Framework;
 
 namespace DtronixPackage.Tests.IntegrationTests
@@ -13,7 +6,7 @@ namespace DtronixPackage.Tests.IntegrationTests
     public class PackageTests_ChangeMonitor : IntegrationTestBase
     {
 
-        private void MonitorChangesTests(PackageDataFile file, Action test)
+        private void MonitorChangesTests(DynamicPackageData file, Action test)
         {
             Assert.IsFalse(file.IsDataModified);
             file.Data.Children.Add(new PackageDataContractChild());
@@ -54,14 +47,14 @@ namespace DtronixPackage.Tests.IntegrationTests
         [Test]
         public void RegistersChanges()
         {
-            var file = new PackageDataFile(new Version(1,0), this);
+            var file = new DynamicPackageData(new Version(1,0), this);
             MonitorChangesTests(file, () => Assert.IsTrue(file.IsDataModified));
         }
 
         [Test]
         public void DeRegistersChanges()
         {
-            var file = new PackageDataFile(new Version(1,0), this);
+            var file = new DynamicPackageData(new Version(1,0), this);
             file.MonitorDeregisterOverride(file.Data);
             MonitorChangesTests(file, () => Assert.IsFalse(file.IsDataModified));
         }
@@ -69,7 +62,7 @@ namespace DtronixPackage.Tests.IntegrationTests
         [Test]
         public void IgnoresChangesChanges()
         {
-            var file = new PackageDataFile(new Version(1,0), this);
+            var file = new DynamicPackageData(new Version(1,0), this);
 
             file.MonitorIgnore(() =>
             {

@@ -3,7 +3,7 @@ using System.Runtime.CompilerServices;
 
 namespace DtronixPackage
 {
-    public class FileContent : INotifyPropertyChanged
+    public class PackageContent : INotifyPropertyChanged
     {
         public event PropertyChangedEventHandler PropertyChanged;
 

@@ -1,11 +1,6 @@
 using System;
 using System.IO;
-using System.IO.Compression;
-using System.Linq;
 using System.Threading.Tasks;
-using NLog;
-using NLog.Config;
-using NLog.Targets;
 using NUnit.Framework;
 
 namespace DtronixPackage.Tests.IntegrationTests
@@ -13,81 +8,81 @@ namespace DtronixPackage.Tests.IntegrationTests
     public class PackageTests_Open : IntegrationTestBase
     {
         [Test]
-        public async Task FailsOnNewerVersionOfFile()
+        public async Task FailsOnNewerVersionOfPackage()
         {
-            await CreateAndCloseFile(f => Task.CompletedTask, new Version(2, 0));
-            var file = new PackageDataFile(new Version(1,0), this);
-            Assert.AreEqual(PackageOpenResultType.IncompatibleVersion, (await file.Open(ZipFilename)).OpenFileOpenResultType);
+            await CreateAndClosePackage(f => Task.CompletedTask, new Version(2, 0));
+            var file = new DynamicPackageData(new Version(1,0), this);
+            Assert.AreEqual(PackageOpenResultType.IncompatibleVersion, (await file.Open(PackageFilename)).Result);
         }
 
         [Test]
-        public async Task FailsOnEmptyFile()
+        public async Task FailsOnEmptyPackage()
         {
-            File.Create(ZipFilename).Close();
+            File.Create(PackageFilename).Close();
 
             // Open, save & close the file.
-            var file = new PackageDynamicFile(new Version(1,0), this, false, false);
-            Assert.AreEqual(PackageOpenResultType.Corrupted, (await file.Open(ZipFilename)).OpenFileOpenResultType);
+            var file = new DynamicPackage(new Version(1,0), this, false, false);
+            Assert.AreEqual(PackageOpenResultType.Corrupted, (await file.Open(PackageFilename)).Result);
         }
 
         [Test]
-        public async Task FailsOnLockedFile()
+        public async Task FailsOnLockedPackage()
         {
-            var fileStream = File.Create(ZipFilename);
+            var fileStream = File.Create(PackageFilename);
 
             // Open, save & close the file.
-            var file = new PackageDynamicFile(new Version(1,0), this, false, false);
-            Assert.AreEqual(PackageOpenResultType.Locked, (await file.Open(ZipFilename)).OpenFileOpenResultType);
+            var file = new DynamicPackage(new Version(1,0), this, false, false);
+            Assert.AreEqual(PackageOpenResultType.Locked, (await file.Open(PackageFilename)).Result);
 
             fileStream.Close();
-            File.Delete(ZipFilename);
+            File.Delete(PackageFilename);
         }
 
         [Test]
-        public async Task FailsOnLockedLockFile()
+        public async Task FailsOnLockedLockPackage()
         {
-            await CreateAndCloseFile(f => f.WriteString(ContentFileName, SampleText));
+            await CreateAndClosePackage(f => f.WriteString(ContentFileName, SampleText));
 
-            var fileStream = File.Create(ZipFilename + ".lock");
+            var fileStream = File.Create(PackageFilename + ".lock");
 
             // Open, save & close the file.
-            var file = new PackageDynamicFile(new Version(1,0), this, false, true);
-            Assert.AreEqual(PackageOpenResultType.Locked, (await file.Open(ZipFilename)).OpenFileOpenResultType);
+            var file = new DynamicPackage(new Version(1,0), this, false, true);
+            Assert.AreEqual(PackageOpenResultType.Locked, (await file.Open(PackageFilename)).Result);
 
             fileStream.Close();
         }
 
         [Test]
-        public async Task FileAlreadyOpenFails()
+        public async Task PackageAlreadyOpenFails()
         {
             // Open, save & close the file.
-            var file = new PackageDynamicFile(new Version(1,0), this, false, true);
+            var file = new DynamicPackage(new Version(1,0), this, false, true);
             file.Saving = async fileArg => await file.WriteString(ContentFileName, SampleText);
-            await file.Save(ZipFilename);
+            await file.Save(PackageFilename);
 
-            var fileOpen = new PackageDynamicFile(new Version(1,0), this, false, false);
+            var fileOpen = new DynamicPackage(new Version(1,0), this, false, false);
 
-            Assert.AreEqual(PackageOpenResultType.Locked, (await fileOpen.Open(ZipFilename)).OpenFileOpenResultType);
+            Assert.AreEqual(PackageOpenResultType.Locked, (await fileOpen.Open(PackageFilename)).Result);
         }
 
         [Test]
-        public async Task FileAlreadyOpenSetsLockFileResult()
+        public async Task PackageAlreadyOpenSetsLockedPackageResult()
         {
             // Open, save & close the file.
-            var file = new PackageDynamicFile(new Version(1,0), this, false, true);
+            var file = new DynamicPackage(new Version(1,0), this, false, true);
             file.Saving = async fileArg => await file.WriteString(ContentFileName, SampleText);
-            await file.Save(ZipFilename);
+            await file.Save(PackageFilename);
 
-            var fileOpen = new PackageDynamicFile(new Version(1,0), this, false, true);
+            var fileOpen = new DynamicPackage(new Version(1,0), this, false, true);
 
-            var result = await fileOpen.Open(ZipFilename);
-            Assert.AreEqual(PackageOpenResultType.Locked, result.OpenFileOpenResultType);
+            var result = await fileOpen.Open(PackageFilename);
+            Assert.AreEqual(PackageOpenResultType.Locked, result.Result);
 
             Assert.IsNotNull(result.LockInfo);
 
             file.Close();
 
-            result = await fileOpen.Open(ZipFilename);
+            result = await fileOpen.Open(PackageFilename);
             Assert.IsTrue(result.IsSuccessful);
 
             Assert.IsNull(result.LockInfo);
@@ -96,48 +91,48 @@ namespace DtronixPackage.Tests.IntegrationTests
         [Test]
         public async Task ReturnsSuccess()
         {
-            await CreateAndCloseFile(f => f.WriteString(ContentFileName, SampleText));
+            await CreateAndClosePackage(f => f.WriteString(ContentFileName, SampleText));
 
-            var file = new PackageDynamicFile(new Version(1,0), this, false, false);
-            Assert.AreEqual(PackageOpenResult.Success, await file.Open(ZipFilename));
+            var file = new DynamicPackage(new Version(1,0), this, false, false);
+            Assert.AreEqual(PackageOpenResult.Success, await file.Open(PackageFilename));
         }
 
         [Test]
-        public async Task FailsOnNonExistingFile()
+        public async Task FailsOnNonExistingPackage()
         {
-            var file = new PackageDynamicFile(new Version(1,0), this, false, false);
-            Assert.AreEqual(PackageOpenResultType.FileNotFound, (await file.Open(ZipFilename)).OpenFileOpenResultType);
+            var file = new DynamicPackage(new Version(1,0), this, false, false);
+            Assert.AreEqual(PackageOpenResultType.FileNotFound, (await file.Open(PackageFilename)).Result);
         }
 
         [Test]
         public async Task DoesNotOpenExclusiveLock()
         {
-            await CreateAndCloseFile(file => file.WriteString(ContentFileName, SampleText));
-            await using (File.OpenRead(ZipFilename))
-            using(var file = new PackageDataFile(new Version(1,0), this))
+            await CreateAndClosePackage(file => file.WriteString(ContentFileName, SampleText));
+            await using (File.OpenRead(PackageFilename))
+            using(var file = new DynamicPackageData(new Version(1,0), this))
             {
-                var result = await file.Open(ZipFilename);
+                var result = await file.Open(PackageFilename);
                 Assert.IsFalse(result.IsSuccessful);
             }
 
-            await using (new FileStream(ZipFilename, FileMode.Open, FileAccess.Read, FileShare.Read))
-            using(var file = new PackageDataFile(new Version(1,0), this))
+            await using (new FileStream(PackageFilename, FileMode.Open, FileAccess.Read, FileShare.Read))
+            using(var file = new DynamicPackageData(new Version(1,0), this))
             {
-                var result = await file.Open(ZipFilename);
+                var result = await file.Open(PackageFilename);
                 Assert.IsFalse(result.IsSuccessful);
             }
 
-            await using (new FileStream(ZipFilename, FileMode.Open, FileAccess.ReadWrite, FileShare.Read))
-            using(var file = new PackageDataFile(new Version(1,0), this))
+            await using (new FileStream(PackageFilename, FileMode.Open, FileAccess.ReadWrite, FileShare.Read))
+            using(var file = new DynamicPackageData(new Version(1,0), this))
             {
-                var result = await file.Open(ZipFilename);
+                var result = await file.Open(PackageFilename);
                 Assert.IsFalse(result.IsSuccessful);
             }
 
-            await using (new FileStream(ZipFilename, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
-            using(var file = new PackageDataFile(new Version(1,0), this))
+            await using (new FileStream(PackageFilename, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+            using(var file = new DynamicPackageData(new Version(1,0), this))
             {
-                var result = await file.Open(ZipFilename);
+                var result = await file.Open(PackageFilename);
                 Assert.IsFalse(result.IsSuccessful);
             }
 
@@ -146,53 +141,53 @@ namespace DtronixPackage.Tests.IntegrationTests
         [Test]
         public async Task OpensNonExclusiveLock()
         {
-            await CreateAndCloseFile(file => file.WriteString(ContentFileName, SampleText));
+            await CreateAndClosePackage(file => file.WriteString(ContentFileName, SampleText));
             
-            await using (new FileStream(ZipFilename, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-            using(var file = new PackageDataFile(new Version(1,0), this))
+            await using (new FileStream(PackageFilename, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            using(var file = new DynamicPackageData(new Version(1,0), this))
             {
-                var result = await file.Open(ZipFilename);
+                var result = await file.Open(PackageFilename);
                 Assert.IsTrue(result.IsSuccessful);
             }
             
-            await using (new FileStream(ZipFilename, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite))
-            using(var file = new PackageDataFile(new Version(1,0), this))
+            await using (new FileStream(PackageFilename, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite))
+            using(var file = new DynamicPackageData(new Version(1,0), this))
             {
-                var result = await file.Open(ZipFilename, true);
+                var result = await file.Open(PackageFilename, true);
                 Assert.IsTrue(result.IsSuccessful);
             }
 
-            await using (File.OpenWrite(ZipFilename))
-            using(var file = new PackageDataFile(new Version(1,0), this))
+            await using (File.OpenWrite(PackageFilename))
+            using(var file = new DynamicPackageData(new Version(1,0), this))
             {
-                var result = await file.Open(ZipFilename);
-                Assert.AreEqual(PackageOpenResultType.Locked, result.OpenFileOpenResultType);
+                var result = await file.Open(PackageFilename);
+                Assert.AreEqual(PackageOpenResultType.Locked, result.Result);
             }
 
-            await using (new FileStream(ZipFilename, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
-            using(var file = new PackageDataFile(new Version(1,0), this))
+            await using (new FileStream(PackageFilename, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+            using(var file = new DynamicPackageData(new Version(1,0), this))
             {
-                var result = await file.Open(ZipFilename);
-                Assert.AreEqual(PackageOpenResultType.Locked, result.OpenFileOpenResultType);
+                var result = await file.Open(PackageFilename);
+                Assert.AreEqual(PackageOpenResultType.Locked, result.Result);
             }
         }
 
         [Test]
         public async Task ReadOnly_DoesNotOpenExclusiveLock()
         {
-            await CreateAndCloseFile(file => file.WriteString(ContentFileName, SampleText));
+            await CreateAndClosePackage(file => file.WriteString(ContentFileName, SampleText));
 
-            await using (File.OpenWrite(ZipFilename))
-            using(var file = new PackageDataFile(new Version(1,0), this))
+            await using (File.OpenWrite(PackageFilename))
+            using(var file = new DynamicPackageData(new Version(1,0), this))
             {
-                var result = await file.Open(ZipFilename, true);
+                var result = await file.Open(PackageFilename, true);
                 Assert.IsFalse(result.IsSuccessful);
             }
 
-            await using (new FileStream(ZipFilename, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
-            using(var file = new PackageDataFile(new Version(1,0), this))
+            await using (new FileStream(PackageFilename, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+            using(var file = new DynamicPackageData(new Version(1,0), this))
             {
-                var result = await file.Open(ZipFilename, true);
+                var result = await file.Open(PackageFilename, true);
                 Assert.IsFalse(result.IsSuccessful);
             }
         }
@@ -200,41 +195,56 @@ namespace DtronixPackage.Tests.IntegrationTests
         [Test]
         public async Task ReadOnly_OpensNonExclusiveLock()
         {
-            await CreateAndCloseFile(file => file.WriteString(ContentFileName, SampleText));
-            await using (File.OpenRead(ZipFilename))
-            using(var file = new PackageDataFile(new Version(1,0), this))
+            await CreateAndClosePackage(file => file.WriteString(ContentFileName, SampleText));
+            await using (File.OpenRead(PackageFilename))
+            using(var file = new DynamicPackageData(new Version(1,0), this))
             {
-                var result = await file.Open(ZipFilename, true);
+                var result = await file.Open(PackageFilename, true);
                 Assert.IsTrue(result.IsSuccessful);
             }
 
-            await using (new FileStream(ZipFilename, FileMode.Open, FileAccess.Read, FileShare.Read))
-            using(var file = new PackageDataFile(new Version(1,0), this))
+            await using (new FileStream(PackageFilename, FileMode.Open, FileAccess.Read, FileShare.Read))
+            using(var file = new DynamicPackageData(new Version(1,0), this))
             {
-                var result = await file.Open(ZipFilename, true);
+                var result = await file.Open(PackageFilename, true);
                 Assert.IsTrue(result.IsSuccessful);
             }
 
-            await using (new FileStream(ZipFilename, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-            using(var file = new PackageDataFile(new Version(1,0), this))
+            await using (new FileStream(PackageFilename, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            using(var file = new DynamicPackageData(new Version(1,0), this))
             {
-                var result = await file.Open(ZipFilename, true);
+                var result = await file.Open(PackageFilename, true);
                 Assert.IsTrue(result.IsSuccessful);
             }
 
-            await using (new FileStream(ZipFilename, FileMode.Open, FileAccess.ReadWrite, FileShare.Read))
-            using(var file = new PackageDataFile(new Version(1,0), this))
+            await using (new FileStream(PackageFilename, FileMode.Open, FileAccess.ReadWrite, FileShare.Read))
+            using(var file = new DynamicPackageData(new Version(1,0), this))
             {
-                var result = await file.Open(ZipFilename, true);
+                var result = await file.Open(PackageFilename, true);
                 Assert.IsTrue(result.IsSuccessful);
             }
 
-            await using (new FileStream(ZipFilename, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite))
-            using(var file = new PackageDataFile(new Version(1,0), this))
+            await using (new FileStream(PackageFilename, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite))
+            using(var file = new DynamicPackageData(new Version(1,0), this))
             {
-                var result = await file.Open(ZipFilename, true);
+                var result = await file.Open(PackageFilename, true);
                 Assert.IsTrue(result.IsSuccessful);
             }
+        }
+
+        [Test]
+        public async Task FailsOpeningOtherApplicationPackage()
+        {
+            // Open, save & close the file.
+            using (var file = new DynamicPackage(new Version(1, 0), this, false, true, "OtherApp"))
+            {
+                await file.Save(PackageFilename);
+            }
+
+            var fileOpen = new DynamicPackage(new Version(1,0), this, false, true);
+
+            var result = await fileOpen.Open(PackageFilename);
+            Assert.AreEqual(PackageOpenResultType.IncompatibleApplication, result.Result);
         }
     }
 }

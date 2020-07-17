@@ -8,25 +8,25 @@ namespace DtronixPackage
 
         public FileLockContents LockInfo { get; }
 
-        public PackageOpenResultType OpenFileOpenResultType { get; }
+        public PackageOpenResultType Result { get; }
         public Exception Exception { get; }
         public bool IsSuccessful { get; }
 
-        public PackageOpenResult(PackageOpenResultType openFileOpenResultType)
-            : this(openFileOpenResultType, null)
+        public PackageOpenResult(PackageOpenResultType result)
+            : this(result, null)
         {
         }
 
-        public PackageOpenResult(PackageOpenResultType openFileOpenResultType, Exception exception)
-            : this(openFileOpenResultType, exception, null)
+        public PackageOpenResult(PackageOpenResultType result, Exception exception)
+            : this(result, exception, null)
         {
         }
 
-        public PackageOpenResult(PackageOpenResultType openFileOpenResultType, Exception exception, FileLockContents lockInfo)
+        public PackageOpenResult(PackageOpenResultType result, Exception exception, FileLockContents lockInfo)
         {
-            IsSuccessful = openFileOpenResultType == PackageOpenResultType.Success;
+            IsSuccessful = result == PackageOpenResultType.Success;
             LockInfo = lockInfo;
-            OpenFileOpenResultType = openFileOpenResultType;
+            Result = result;
             Exception = exception;
         }
 
@@ -35,7 +35,7 @@ namespace DtronixPackage
             if (this == Success)
                 return "Success";
 
-            return $"{OpenFileOpenResultType};Exception: {Exception.Message}";
+            return $"{Result};Exception: {Exception.Message}";
         }
     }
 }

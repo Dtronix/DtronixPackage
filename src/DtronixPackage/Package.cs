@@ -15,9 +15,13 @@ using NLog;
 
 namespace DtronixPackage
 {
+    /// <summary>
+    /// Manages reading, writing & multi-user usage of application package files.
+    /// </summary>
+    /// <typeparam name="TContent"></typeparam>
     [SuppressMessage("ReSharper", "StaticMemberInGenericType")]
     public abstract class Package<TContent> : IDisposable
-        where TContent : FileContent, new()
+        where TContent : PackageContent, new()
     {
         private readonly string _appName;
         private readonly Version _appVersion;
@@ -26,11 +30,11 @@ namespace DtronixPackage
         private ZipArchive _openArchive;
         private List<string> _saveFileList;
         private FileStream _lockFile;
-        private FileStream _openFileStream;
+        private FileStream _openPackageStream;
         private ZipArchive _saveArchive;
 
         private string _lockFilePath;
-        private readonly SemaphoreSlim _fileOperationSemaphore = new SemaphoreSlim(1, 1);
+        private readonly SemaphoreSlim _packageOperationSemaphore = new SemaphoreSlim(1, 1);
         private List<SaveLogItem> _saveLog = new List<SaveLogItem>();
         private readonly Timer _autoSaveTimer;
         private bool _autoSaveEnabled;
@@ -41,40 +45,40 @@ namespace DtronixPackage
         private bool _isDataModified;
 
         protected static readonly Logger Logger = LogManager.GetCurrentClassLogger();
-        private static readonly Version FileVersion;
+        private static readonly Version PackageVersion;
 
         /// <summary>
-        /// Called upon closure of a file.
+        /// Called upon closure of a package.
         /// </summary>
         public event EventHandler<EventArgs> Closed;
 
         /// <summary>
-        /// Called upon closure of a file.
+        /// Called upon closure of a package.
         /// </summary>
         public event EventHandler MonitoredChanged;
 
         /// <summary>
-        /// Contains a log of all the times this file has been saved.
+        /// Contains a log of all the times this package has been saved.
         /// </summary>
         public IReadOnlyList<SaveLogItem> SaveLog => _saveLog.AsReadOnly();
         
         /// <summary>
-        /// Version of the opened file.
+        /// Version of the opened package.
         /// </summary>
         public Version OpenVersion { get; private set; }
         
         /// <summary>
-        /// If set to true, a ".BAK" file will be created with the previously saved file.
+        /// If set to true, a ".BAK" package will be created with the previously saved package.
         /// </summary>
-        public bool SaveBackupFile { get; set; }
+        public bool SaveBackupPackage { get; set; }
 
         /// <summary>
-        /// Path to save the current file
+        /// Path to save the current package.
         /// </summary>
         public string SavePath { get; private set; }
 
         /// <summary>
-        /// True if this file is in a read only state and can not be saved to the same file.
+        /// True if this package is in a read only state and can not be saved to the same package.
         /// </summary>
         public bool IsReadOnly { get; private set; }
 
@@ -84,13 +88,13 @@ namespace DtronixPackage
         public bool IsMonitorEnabled { get; set; } = true;
 
         /// <summary>
-        /// Contains a list of upgrades which will be performed on older versions of files.
+        /// Contains a list of upgrades which will be performed on older versions of packages.
         /// Add to this list to include additional upgrades.  Will execute in the order listed.
         /// </summary>
         protected List<PackageUpgrade<TContent>> Upgrades { get; } = new List<PackageUpgrade<TContent>>();
 
         /// <summary>
-        /// True if the file has auto-save turned on.
+        /// True if the package has auto-save turned on.
         /// </summary>
         public bool AutoSaveEnabled
         {
@@ -112,7 +116,10 @@ namespace DtronixPackage
             {
                 _isDataModified = value;
                 IsDataModifiedSinceAutoSave = value;
-                MonitoredChanged?.Invoke(this, EventArgs.Empty);
+
+                // Only invoke the MonitorChanged event if there are changes.
+                if(value)
+                    MonitoredChanged?.Invoke(this, EventArgs.Empty);
             }
         }
 
@@ -134,12 +141,12 @@ namespace DtronixPackage
         }
 
         /// <summary>
-        /// Time this file was initially opened/created.
+        /// Time this package was initially opened/created.
         /// </summary>
         protected DateTime OpenTime { get; private set; }
 
         /// <summary>
-        /// Path to the auto-save file for this file.
+        /// Path to the auto-save package for this package.
         /// </summary>
         protected string AutoSavePath { get; private set; }
         
@@ -161,7 +168,7 @@ namespace DtronixPackage
         /// Currently running application's version.
         /// </param>
         /// <param name="preserveUpgrade">
-        /// If set to true and a file opened is set on a previous version than specified in CurrentVersion,
+        /// If set to true and a package opened is set on a previous version than specified in CurrentVersion,
         /// A copy of all the files in the ProgramName directory is copied into a backup directory named
         /// ProgramName-backup-CurrentVersion.
         /// </param>
@@ -194,11 +201,11 @@ namespace DtronixPackage
 
         static Package()
         {
-            FileVersion = typeof(Package<TContent>).Assembly.GetName().Version;
+            PackageVersion = typeof(Package<TContent>).Assembly.GetName().Version;
         }
 
         /// <summary>
-        /// Method called when opening a file and to run the program specific opening code.
+        /// Method called when opening a package file and to run the program specific opening code.
         /// By default, will read content.json and copy the contents to the Content object.
         /// </summary>
         /// <param name="isUpgrade"></param>
@@ -220,7 +227,7 @@ namespace DtronixPackage
         }
 
         /// <summary>
-        /// Method called when saving.  By default, will save the Content file to contents.json
+        /// Method called when saving.  By default, will save the Content object to contents.json
         /// </summary>
         protected virtual async Task OnSave()
         {
@@ -237,9 +244,9 @@ namespace DtronixPackage
         protected abstract string OnTempFilePathRequest(string fileName);
 
         /// <summary>
-        /// Gets a file inside this zip file.  Must close after usage.
+        /// Gets a file inside this package.  Must close after usage.
         /// </summary>
-        /// <param name="path">Path to the file inside the zip.  Case sensitive.</param>
+        /// <param name="path">Path to the file inside the package.  Case sensitive.</param>
         /// <returns>Stream on existing file.  Null otherwise.</returns>
         protected internal Stream GetStream(string path)
         {
@@ -248,7 +255,7 @@ namespace DtronixPackage
         }
 
         /// <summary>
-        /// Gets a file inside this zip file.  Must close after usage.
+        /// Reads a string from the specified path inside the package.
         /// </summary>
         /// <param name="path">Path to the file inside the zip.  Case sensitive.</param>
         /// <returns>Stream on existing file.  Null otherwise.</returns>
@@ -260,7 +267,7 @@ namespace DtronixPackage
         }
 
         /// <summary>
-        /// Open a JSON file inside the current application directory.
+        /// Reads a JSON document from the specified path inside the package.
         /// </summary>
         /// <typeparam name="T">Type of JSON file to convert into.</typeparam>
         /// <param name="path">Path to open.  This is a sub-directory of the program name.</param>
@@ -283,10 +290,21 @@ namespace DtronixPackage
         }
 
         /// <summary>
-        /// Returns all the file paths to files inside a directory.
+        /// Checks to see if a file exists inside the pacakge.
+        /// </summary>
+        /// <param name="path">Path to find.</param>
+        /// <returns>True if the file exists, false otherwise.</returns>
+        protected internal bool FileExists(string path)
+        {
+            path = _appName + "/" + path;
+            return _openArchive.Entries.Any(e => e.FullName == path);
+        }
+
+        /// <summary>
+        /// Returns all the file paths to files inside a package directory.
         /// </summary>
         /// <param name="path">Base path of the directory to search inside.</param>
-        /// <returns>All paths to the files contained inside a directory.</returns>
+        /// <returns>All paths to the files contained inside a package directory.</returns>
         protected internal string[] DirectoryContents(string path)
         {
             var baseDir = _appName + "/";
@@ -297,7 +315,7 @@ namespace DtronixPackage
         }
 
         /// <summary>
-        /// Saves a type to a JSON file.
+        /// Writes an object to a JSON file at the specified path inside the package.
         /// </summary>
         /// <param name="path"></param>
         /// <param name="json"></param>
@@ -308,7 +326,7 @@ namespace DtronixPackage
         }
 
         /// <summary>
-        /// Saves a string of text into the specified path.
+        /// Writes a string to a text file at the specified path inside the package.
         /// </summary>
         /// <param name="path">Path to save.  This is a sub-directory of the program name.</param>
         /// <param name="text">String of data to save.</param>
@@ -322,7 +340,7 @@ namespace DtronixPackage
         }
 
         /// <summary>
-        /// Saves a stream of data into the current application directory.
+        /// Writes a stream to a file at the specified path inside the package.
         /// </summary>
         /// <param name="path">Path to save.  This is a sub-directory of the program name.</param>
         /// <param name="stream">Stream of data to save.</param>
@@ -379,11 +397,11 @@ namespace DtronixPackage
         }
 
         /// <summary>
-        /// Opens a file into the current instance.
+        /// Opens a package.
         /// </summary>
-        /// <param name="path">File path to open.</param>
+        /// <param name="path">Package path to open.</param>
         /// <param name="openReadOnly">
-        /// Specifies that the file will be open in read-only mode and can not be saved back
+        /// Specifies that the package will be open in read-only mode and can not be saved back
         /// to the source file.
         /// </param>
         /// <param name="cancellationToken">Cancellation token for opening.</param>
@@ -393,10 +411,10 @@ namespace DtronixPackage
             bool openReadOnly = false, 
             CancellationToken cancellationToken = default)
         {
-            if (_openFileStream != null)
-                throw new InvalidOperationException("Can not open file when file is already open");
+            if (_openPackageStream != null)
+                throw new InvalidOperationException("Can not open package when a package is already open");
 
-            await _fileOperationSemaphore.WaitAsync(cancellationToken);
+            await _packageOperationSemaphore.WaitAsync(cancellationToken);
 
             PackageOpenResult returnValue = null;
 
@@ -418,10 +436,9 @@ namespace DtronixPackage
 
                 try
                 {
-                    // Copy the file into memory for use.
-                    // Retain the file lock to ensure the file does not get changed.
-                    // Open the file in read-only mode.
-                    _openFileStream = new FileStream(
+                    // Copy the package into memory for use.
+                    // Retain the package lock to ensure the file does not get changed.
+                    _openPackageStream = new FileStream(
                         path,
                         FileMode.Open,
                         openReadOnly ? FileAccess.Read : FileAccess.ReadWrite,
@@ -458,25 +475,39 @@ namespace DtronixPackage
                 }
 
                 // Read the entire contents to memory for usage in read-only mode.
-                Stream openFileStreamCopy = null;
+                Stream openPackageStreamCopy = null;
                 if (openReadOnly)
                 {
-                    openFileStreamCopy = new MemoryStream((int) _openFileStream.Length);
-                    await _openFileStream.CopyToAsync(openFileStreamCopy, cancellationToken);
-                    _openFileStream.Close();
-                    _openFileStream = null;
+                    openPackageStreamCopy = new MemoryStream((int) _openPackageStream.Length);
+                    await _openPackageStream.CopyToAsync(openPackageStreamCopy, cancellationToken);
+                    _openPackageStream.Close();
+                    _openPackageStream = null;
                 }
 
                 try
                 {
-                    _openArchive = new ZipArchive(_openFileStream ?? openFileStreamCopy, ZipArchiveMode.Update, true);
+                    _openArchive = new ZipArchive(_openPackageStream ?? openPackageStreamCopy, ZipArchiveMode.Update, true);
 
                     // Read the version information in the application directory.
-                    var versionEntity = _openArchive.Entries.First(f => f.FullName == _appName + "/version");
+                    var versionEntity = _openArchive.Entries.FirstOrDefault(f => f.FullName == _appName + "/version");
+
+                    // If the versionEntity is empty, this usually means that this package was not created by the same
+                    // application currently opening the package.
+                    if (versionEntity == null)
+                    {
+
+                        // Check to see if there is a version file in the entire package.  If there is, there is a high
+                        // probability that this is a Package file, just used by another application's package system.
+                        if(_openArchive.Entries.Any(f => f.FullName.EndsWith("/version")))
+                            return returnValue = new PackageOpenResult(PackageOpenResultType.IncompatibleApplication);
+                        else
+                            return returnValue = new PackageOpenResult(PackageOpenResultType.Corrupted);
+                    }
+
                     using var reader = new StreamReader(versionEntity.Open());
                     OpenVersion = new Version(await reader.ReadToEndAsync());
 
-                    // Don't allow opening of newer files on older applications.
+                    // Don't allow opening of newer packages on older applications.
                     if (_appVersion < OpenVersion)
                         return returnValue = new PackageOpenResult(PackageOpenResultType.IncompatibleVersion);
                 }
@@ -487,8 +518,7 @@ namespace DtronixPackage
 
 
 
-                // Try to open the modified log file.
-                // It may not exist in older versions.
+                // Try to open the modified log file. It may not exist in older versions.
                 var saveLogEntry =
                     _openArchive.Entries.FirstOrDefault(f => f.FullName == _appName + "/save_log.json");
 
@@ -503,7 +533,7 @@ namespace DtronixPackage
                     catch (Exception e)
                     {
                         Logger.Error(e, "Could not parse save log.");
-                        _saveLog = new List<SaveLogItem>();
+                        _saveLog.Clear();
                     }
                 }
 
@@ -545,20 +575,20 @@ namespace DtronixPackage
                             if (!await upgrade.Upgrade(this, _openArchive))
                             {
                                 // Upgrade soft failed, log it and notify the opener.
-                                Logger.Error($"Unable to perform upgrade of file {path} to version {upgrade.Version}.");
+                                Logger.Error($"Unable to perform upgrade of package {path} to version {upgrade.Version}.");
                                 return returnValue = new PackageOpenResult(PackageOpenResultType.UpgradeFailure);
                             }
                         }
                         catch (Exception e)
                         {
                             // Upgrade hard failed.
-                            Logger.Error(e, $"Unable to perform upgrade of file {path} to version {upgrade.Version}.");
+                            Logger.Error(e, $"Unable to perform upgrade of package {path} to version {upgrade.Version}.");
                             return returnValue = new PackageOpenResult(PackageOpenResultType.UpgradeFailure);
                         }
 
                     }
 
-                    // Since we did perform an upgrade, set set that the file has been changed.
+                    // Since we did perform an upgrade, set set that the package has been changed.
                     IsDataModified = true;
                 }
 
@@ -588,7 +618,7 @@ namespace DtronixPackage
                 if (returnValue != PackageOpenResult.Success)
                     CloseInternal(false);
 
-                _fileOperationSemaphore.Release();
+                _packageOperationSemaphore.Release();
             }
         }
 
@@ -632,7 +662,7 @@ namespace DtronixPackage
 
         /// <summary>
         /// Check to see if the lock exists.  If it does, try to delete it to see if the lock file is truly in use.
-        /// IF the file can be deleted, create a new lock file.
+        /// If the file can be deleted, create a new lock file.
         /// If it can not be deleted, notify the user and return false.
         /// </summary>
         /// <returns>True if the lock file exists, false otherwise.  Lock file information if it was read.</returns>
@@ -670,25 +700,25 @@ namespace DtronixPackage
         }
 
         /// <summary>
-        /// Saves the current file to the specified path.
+        /// Saves the current package to the specified path.
         /// </summary>
-        /// <param name="path">Path to output the file.</param>
+        /// <param name="path">Path to output the package.</param>
         public async Task<PackageSaveResult> Save(string path)
         {
             // Check the path if we are not auto-saving.
             if (string.IsNullOrWhiteSpace(path))
                 throw new ArgumentNullException(nameof(path));
 
-            Logger.ConditionalTrace("Requesting _fileOperationSemaphore");
+            Logger.ConditionalTrace("Requesting _packageOperationSemaphore");
             // Ensure we are not already saving.
-            await _fileOperationSemaphore.WaitAsync();
+            await _packageOperationSemaphore.WaitAsync();
 
-            Logger.ConditionalTrace("Acquired _fileOperationSemaphore");
+            Logger.ConditionalTrace("Acquired _packageOperationSemaphore");
 
             _saveFileList = new List<string>();
             SavePath = path;
 
-            // If the file is new and not saved yet, a lock file has not been created.
+            // If the package is new and not saved yet, a lock file has not been created.
             if (_lockFile == null)
                 _lockFilePath = path + ".lock";
 
@@ -730,7 +760,7 @@ namespace DtronixPackage
         /// Core save functionality.
         /// </summary>
         /// <param name="autoSave">
-        /// Set to true to bypass saving to the SavePath and instead save the current file to the temp directory.
+        /// Set to true to bypass saving to the SavePath and instead save the current package to the temp directory.
         /// </param>
         /// <returns>Result of saving</returns>
         private async Task<PackageSaveResult> SaveInternal(bool autoSave)
@@ -739,21 +769,21 @@ namespace DtronixPackage
             PackageSaveResult returnValue = null;
             try
             {
-                // TODO: Reuse existing archive when saving from a read-only file.  Prevents duplication of the MS.
+                // TODO: Reuse existing archive when saving from a read-only package.  Prevents duplication of the MS.
                 var saveArchiveMemoryStream = new MemoryStream();
 
                 using (_saveArchive = new ZipArchive(saveArchiveMemoryStream, ZipArchiveMode.Create, true))
                 {
-                    // Write version file
+                    // Write application version file
                     await using (var fileVersionStream = CreateEntityStream("file_version", false))
                     {
                         await using var writer = new StreamWriter(fileVersionStream);
-                        await writer.WriteAsync(FileVersion.ToString());
+                        await writer.WriteAsync(PackageVersion.ToString());
                     }
 
                     await OnSave();
 
-                    // Write version file
+                    // Write package version file
                     await WriteString("version", _appVersion.ToString());
 
                     var log = new SaveLogItem
@@ -795,33 +825,33 @@ namespace DtronixPackage
                     
                 }
 
-                // Only save a backup file if we are not performing an auto save.
-                if (SaveBackupFile && !autoSave)
+                // Only save a backup package if we are not performing an auto save.
+                if (SaveBackupPackage && !autoSave)
                 {
-                    Logger.ConditionalTrace("Saving backup file.");
-                    var bakFile = SavePath + ".bak";
+                    Logger.ConditionalTrace("Saving backup package.");
+                    var bakPackage = SavePath + ".bak";
                     try
                     {
-                        Logger.ConditionalTrace("Checking for existence of {0} backup file", bakFile);
-                        if (File.Exists(bakFile))
+                        Logger.ConditionalTrace("Checking for existence of {0} backup .", bakPackage);
+                        if (File.Exists(bakPackage))
                         {
-                            Logger.ConditionalTrace("Found backup file");
-                            File.SetAttributes(bakFile, FileAttributes.Normal);
-                            File.Delete(bakFile);
-                            Logger.ConditionalTrace("Deleted backup file");
+                            Logger.ConditionalTrace("Found backup package.");
+                            File.SetAttributes(bakPackage, FileAttributes.Normal);
+                            File.Delete(bakPackage);
+                            Logger.ConditionalTrace("Deleted backup package.");
                         }
 
                         // Close the lock held on the file.  On initial save, there is nothing to close.
-                        _openFileStream?.Close();
-                        _openFileStream = null;
+                        _openPackageStream?.Close();
+                        _openPackageStream = null;
 
-                        Logger.ConditionalTrace("Closed _openFileStream.");
-                        Logger.ConditionalTrace("Checking for existence of existing save file {0}", SavePath);
+                        Logger.ConditionalTrace("Closed _openPackageStream.");
+                        Logger.ConditionalTrace("Checking for existence of existing save package {0}", SavePath);
 
                         if (File.Exists(SavePath))
                         {
-                            File.Move(SavePath, bakFile);
-                            Logger.ConditionalTrace("Found existing save file and renamed to {0}", bakFile);
+                            File.Move(SavePath, bakPackage);
+                            Logger.ConditionalTrace("Found existing save package and renamed to {0}", bakPackage);
                         }
                     }
                     catch (Exception e)
@@ -832,31 +862,31 @@ namespace DtronixPackage
 
                 if (!autoSave)
                 {
-                    // Create a new file/overwrite existing if a backup was not created.
-                    // Retain the lock on the file.
-                    if (_openFileStream == null)
+                    // Create a new package/overwrite existing if a backup was not created.
+                    // Retain the lock on the package.
+                    if (_openPackageStream == null)
                     {
-                        // Create a new source file.
-                        _openFileStream = new FileStream(SavePath, FileMode.Create, FileAccess.ReadWrite, FileShare.Read);
+                        // Create a new source package.
+                        _openPackageStream = new FileStream(SavePath, FileMode.Create, FileAccess.ReadWrite, FileShare.Read);
                     }
                     else
                     {
-                        // Set the file length to 0 to reset for writing.
-                        _openFileStream.Position = 0;
-                        _openFileStream.SetLength(0);
+                        // Set the package file length to 0 to reset for writing.
+                        _openPackageStream.Position = 0;
+                        _openPackageStream.SetLength(0);
                     }
                 }
 
                 if (autoSave)
                 {
-                    Logger.ConditionalTrace("Creating AutoSave file {0}.", AutoSavePath);
+                    Logger.ConditionalTrace("Creating AutoSave package {0}.", AutoSavePath);
                 }
 
-                var destinationStream = autoSave ? File.Create(AutoSavePath) : _openFileStream;
+                var destinationStream = autoSave ? File.Create(AutoSavePath) : _openPackageStream;
 
                 if (autoSave)
                 {
-                    Logger.ConditionalTrace("Created AutoSave file {0}.", AutoSavePath);
+                    Logger.ConditionalTrace("Created AutoSave package {0}.", AutoSavePath);
                 }
 
                 if (destinationStream == null)
@@ -869,7 +899,7 @@ namespace DtronixPackage
                 await saveArchiveMemoryStream.CopyToAsync(destinationStream);
 
                 // If we were auto-saving, close the destination save and return true.
-                // We do not want to effect the current state of the rest of the file.
+                // We do not want to effect the current state of the rest of the package.
                 if (autoSave)
                 {
                     destinationStream.Close();
@@ -897,13 +927,13 @@ namespace DtronixPackage
             finally
             {
                 // If we were successful in saving, set the modified variable to false.
-                // If we are auto-saving, don't change these variables since the file still needs
+                // If we are auto-saving, don't change these variables since the package still needs
                 // to actually be saved to the destination.
                 if (returnValue == PackageSaveResult.Success && autoSave == false)
                 {
                     IsDataModified = false;
 
-                    // Since the file was saved, the file is no longer in read-only mode.
+                    // Since the package was saved, the package is no longer in read-only mode.
                     IsReadOnly = false;
                 }
 
@@ -911,8 +941,8 @@ namespace DtronixPackage
 
                 _saveFileList = null;
 
-                Logger.ConditionalTrace("Released _fileOperationSemaphore");
-                _fileOperationSemaphore.Release();
+                Logger.ConditionalTrace("Released _packageOperationSemaphore");
+                _packageOperationSemaphore.Release();
             }
         }
 
@@ -976,10 +1006,10 @@ namespace DtronixPackage
             if ((AutoSaveEnabled || synchronous) && IsDataModifiedSinceAutoSave)
             {
 
-                Logger.ConditionalTrace("Requesting _fileOperationSemaphore");
+                Logger.ConditionalTrace("Requesting _packageOperationSemaphore");
                 // Ensure we are not already saving.
-                await _fileOperationSemaphore.WaitAsync();
-                Logger.ConditionalTrace("Acquired _fileOperationSemaphore");
+                await _packageOperationSemaphore.WaitAsync();
+                Logger.ConditionalTrace("Acquired _packageOperationSemaphore");
 
                 _saveFileList = new List<string>();
                 var saveResult = await SaveInternal(true);
@@ -991,7 +1021,7 @@ namespace DtronixPackage
                 }
                 else
                 {
-                    Logger.Error(saveResult.Exception, $"Could not successfully auto-save file {saveResult.SaveResult}");
+                    Logger.Error(saveResult.Exception, $"Could not successfully auto-save package {saveResult.SaveResult}");
                 }
             }
         }
@@ -1075,7 +1105,7 @@ namespace DtronixPackage
         }
 
         /// <summary>
-        /// Call when the file has been changed.
+        /// Call when the package has been changed.
         /// </summary>
         protected void DataModified()
         {
@@ -1084,7 +1114,7 @@ namespace DtronixPackage
         }
         
         /// <summary>
-        /// Closes the currently open file.
+        /// Closes the currently open package.
         /// </summary>
         public void Close()
         {
@@ -1092,7 +1122,7 @@ namespace DtronixPackage
         }
 
         /// <summary>
-        /// Closes the currently open file.
+        /// Closes the currently open Package.
         /// </summary>
         private void CloseInternal(bool invokeClosed)
         {
@@ -1113,17 +1143,17 @@ namespace DtronixPackage
 
             _openArchive?.Dispose();
             _openArchive = null;
-            _openFileStream?.Dispose();
-            _openFileStream = null;
+            _openPackageStream?.Dispose();
+            _openPackageStream = null;
             _saveArchive?.Dispose();
             _saveArchive = null;
             _saveFileList = null;
             _lockFile?.Close();
             _lockFile = null;
-            _openFileStream?.Close();
-            _openFileStream = null;
+            _openPackageStream?.Close();
+            _openPackageStream = null;
             _lockFilePath = null;
-            _saveLog = null;
+            _saveLog.Clear();
             foreach (var registeredListener in _registeredListeners)
                 registeredListener.Value.Dispose();
 
@@ -1133,7 +1163,11 @@ namespace DtronixPackage
             SavePath = null;
 
             IsReadOnly = false;
-            AutoSaveEnabled = false;
+
+            // Disable auto-save only if it is enabled.
+            if(AutoSaveEnabled)
+                AutoSaveEnabled = false;
+
             IsDataModified = false;
             OpenTime = default;
             AutoSavePath = null;

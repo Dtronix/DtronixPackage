@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 namespace DtronixPackage
 {
     public abstract class PackageUpgrade<T>
-        where T : FileContent, new()
+        where T : PackageContent, new()
     {
         protected Package<T> File { get; private set; }
         public Version Version { get; }

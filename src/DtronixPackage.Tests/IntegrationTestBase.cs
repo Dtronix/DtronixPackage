@@ -24,7 +24,7 @@ namespace DtronixPackage.Tests
         public Exception ThrowException;
         protected static readonly Logger Logger = LogManager.GetCurrentClassLogger();
         protected string ContentFileName;
-        protected string ZipFilename;
+        protected string PackageFilename;
 
         public IntegrationTestBase()
         {
@@ -81,7 +81,7 @@ namespace DtronixPackage.Tests
             SampleText = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.";
             SampleByteArray = new byte[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
             
-            ZipFilename = Path.Combine("saves/", Guid.NewGuid() + ".file");
+            PackageFilename = Path.Combine("saves/", Guid.NewGuid() + ".file");
             ContentFileName = Guid.NewGuid() + ".dat";
         }
 
@@ -163,32 +163,32 @@ namespace DtronixPackage.Tests
         }
 
         
-        protected async Task<PackageDynamicFile> CreateAndSaveFile(
-            Func<PackageDynamicFile, Task> onSave, 
+        protected async Task<DynamicPackage> CreateAndSavePackage(
+            Func<DynamicPackage, Task> onSave, 
             Version appVersion = null)
         {
 
             if(appVersion == null)
                 appVersion = new Version(1, 0);
 
-            var file = new PackageDynamicFile(appVersion, this, false, false)
+            var file = new DynamicPackage(appVersion, this, false, false)
             {
                 Saving = onSave
             };
 
-            await file.Save(ZipFilename);
+            await file.Save(PackageFilename);
             return file;
         }
         
-        protected async Task CreateAndCloseFile(Func<PackageDynamicFile, Task> onSave, Version appVersion = null)
+        protected async Task CreateAndClosePackage(Func<DynamicPackage, Task> onSave, Version appVersion = null)
         {
-            var file = await CreateAndSaveFile(onSave, appVersion);
+            var file = await CreateAndSavePackage(onSave, appVersion);
             file.Close();
         }
 
-        protected async Task OpenWaitForCompletionFile(Func<PackageDynamicFile, Task<bool>> onOpen)
+        protected async Task OpenWaitForCompletionPackage(Func<DynamicPackage, Task<bool>> onOpen)
         {
-            var file = new PackageDynamicFile(new Version(1,0), this, false, false)
+            var file = new DynamicPackage(new Version(1,0), this, false, false)
             {
                 Opening = async dynamicFile =>
                 {
@@ -198,15 +198,15 @@ namespace DtronixPackage.Tests
                 }
             };
 
-            await file.Open(ZipFilename);
+            await file.Open(PackageFilename);
             file.Close();
 
             WaitTest(1000);
         }
 
-        protected async Task OpenWaitForCompletionFile(Func<PackageDynamicFile, Task> onOpen)
+        protected async Task OpenWaitForCompletionPackage(Func<DynamicPackage, Task> onOpen)
         {
-            var file = new PackageDynamicFile(new Version(1,0), this, false, false);
+            var file = new DynamicPackage(new Version(1,0), this, false, false);
             file.Opening = async argFile =>
             {
                 await onOpen.Invoke(file);
@@ -215,7 +215,7 @@ namespace DtronixPackage.Tests
                 return true;
             };
 
-            await file.Open(ZipFilename);
+            await file.Open(PackageFilename);
             file.Close();
 
             WaitTest(1000);

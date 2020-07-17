@@ -11,7 +11,7 @@ namespace DtronixPackage
 {
     public class FileManagerViewModel<TFile, TFileContent> : INotifyPropertyChanged
         where TFile : Package<TFileContent>, new()
-        where TFileContent : FileContent, new()
+        where TFileContent : PackageContent, new()
     {
         private readonly string _appName;
         private readonly Version _appVersion;

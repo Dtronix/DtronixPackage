@@ -4,24 +4,34 @@ using System.Threading.Tasks;
 
 namespace DtronixPackage.Tests
 {
-    public class PackageDynamicFile : Package<FileContent>
+    public class DynamicPackage : Package<PackageContent>
     {
         private readonly IntegrationTestBase _integrationTest;
 
-        public Func<PackageDynamicFile, Task<bool>> Opening;
+        public Func<DynamicPackage, Task<bool>> Opening;
 
-        public Func<PackageDynamicFile, Task> Saving;
+        public Func<DynamicPackage, Task> Saving;
 
-        public Func<string> TempFilePathRequest;
+        public Func<string> TempPackagePathRequest;
 
-        public List<PackageUpgrade<FileContent>> UpgradeOverrides => Upgrades;
+        public List<PackageUpgrade<PackageContent>> UpgradeOverrides => Upgrades;
 
-        public PackageDynamicFile(
+        public DynamicPackage(
             Version appVersion,
             IntegrationTestBase integrationTest, 
             bool preserveUpgrade,
             bool useLockFile) 
-            : base("DtronixPackage.Tests", appVersion, preserveUpgrade, useLockFile)
+            : this(appVersion, integrationTest, preserveUpgrade, useLockFile, "DtronixPackage.Tests")
+        {
+        }
+
+        public DynamicPackage(
+            Version appVersion,
+            IntegrationTestBase integrationTest, 
+            bool preserveUpgrade,
+            bool useLockFile,
+            string appName) 
+            : base(appName, appVersion, preserveUpgrade, useLockFile)
         {
             _integrationTest = integrationTest;
         }
@@ -61,7 +71,7 @@ namespace DtronixPackage.Tests
 
         protected override string OnTempFilePathRequest(string fileName)
         {
-            var path = TempFilePathRequest?.Invoke();
+            var path = TempPackagePathRequest?.Invoke();
 
             return path;
         }

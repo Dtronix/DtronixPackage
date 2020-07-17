@@ -1,11 +1,5 @@
 using System;
-using System.IO;
-using System.IO.Compression;
-using System.Linq;
 using System.Threading.Tasks;
-using NLog;
-using NLog.Config;
-using NLog.Targets;
 using NUnit.Framework;
 
 namespace DtronixPackage.Tests.IntegrationTests
@@ -16,12 +10,23 @@ namespace DtronixPackage.Tests.IntegrationTests
         public async Task CreatedAndDeleted()
         {
             // Open, save & close the file.
-            var file = new PackageDynamicFile(new Version(1,0), this, false, true);
-            await file.Save(ZipFilename);
+            var file = new DynamicPackage(new Version(1,0), this, false, true);
+            await file.Save(PackageFilename);
             await AssertFileExistWithin(file.SavePath + ".lock");
 
             file.Close();
             await AssertFileDoesNotExistWithin(file.SavePath + ".lock");
+        }
+
+        
+        [Test]
+        public async Task DoesNotCreateLockFile()
+        {
+            // Open, save & close the file.
+            var file = new DynamicPackage(new Version(1,0), this, false, false);
+            await file.Save(PackageFilename);
+            await AssertFileDoesNotExistWithin(file.SavePath + ".lock");
+            file.Close();
         }
     }
 }

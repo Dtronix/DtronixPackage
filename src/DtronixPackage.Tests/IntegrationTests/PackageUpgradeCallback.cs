@@ -1,19 +1,16 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO.Compression;
-using System.Text;
 using System.Threading.Tasks;
-using DtronixPackage;
 
 namespace DtronixPackage.Tests.IntegrationTests
 {
     // ReSharper disable once InconsistentNaming
-    class PackageCallbackUpgrade : PackageUpgrade<FileContent>
+    class PackageUpgradeCallback : PackageUpgrade<PackageContent>
     {
 
         private readonly Func<DtronixPackageCallbackUpgradeCallbackEventArgs, Task<bool>> Upgrading;
 
-        public PackageCallbackUpgrade(
+        public PackageUpgradeCallback(
             Version version, 
             Func<DtronixPackageCallbackUpgradeCallbackEventArgs, Task<bool>> upgrading)
             : base(version)
@@ -21,7 +18,7 @@ namespace DtronixPackage.Tests.IntegrationTests
             Upgrading = upgrading;
         }
 
-        public PackageCallbackUpgrade(
+        public PackageUpgradeCallback(
             Version version, 
             Func<DtronixPackageCallbackUpgradeCallbackEventArgs, Task> upgrading)
             : base(version)

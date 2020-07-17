@@ -3,11 +3,11 @@ using System.ComponentModel;
 
 namespace DtronixPackage.Tests
 {
-    class PackageDataFile : PackageDynamicFile
+    class DynamicPackageData : DynamicPackage
     {
         public PackageDataContractRoot Data { get; private set; }
 
-        public PackageDataFile(Version appVersion, IntegrationTestBase integrationTest)
+        public DynamicPackageData(Version appVersion, IntegrationTestBase integrationTest)
             : base(appVersion, integrationTest, false, false)
         {
             Data = new PackageDataContractRoot();
