@@ -10,6 +10,13 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/Dtronix/DtronixPackage</PackageProjectUrl>
     <RepositoryUrl>https://github.com/Dtronix/DtronixPackage</RepositoryUrl>
+    <Description>A save file management system for storing &amp; retrieving data for applications.</Description>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>save,package,data,management,json,netcore</PackageTags>
+    <PackageIcon>icon.png</PackageIcon>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
 
@@ -23,5 +30,10 @@
     </AssemblyAttribute>
   </ItemGroup>
 
-
+  <ItemGroup>
+    <None Include="..\icon.png">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
+  </ItemGroup>
 </Project>
