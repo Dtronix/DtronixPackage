@@ -1,4 +1,4 @@
-# ![Logo](https://github.com/Dtronix/DtronixPackage/blob/master/src/icon.png) DtronixPackage ![.NET Core Desktop](https://github.com/Dtronix/DtronixPackage/workflows/.NET%20Core%20Desktop/badge.svg)
+# ![Logo](https://github.com/Dtronix/DtronixPackage/blob/master/src/icon.png) DtronixPackage ![.NET Core Desktop](https://github.com/Dtronix/DtronixPackage/workflows/.NET%20Core%20Desktop/badge.svg) [![NuGet](https://img.shields.io/nuget/v/DtronixPackage.svg?maxAge=600)](https://www.nuget.org/packages/DtronixPackage)
 
 Dtronix package is a save file management system for storing & retrieving save data for applications.
 
