@@ -84,6 +84,30 @@ namespace DtronixPackage.Tests.IntegrationTests
             await file.Save(PackageFilename);
             Assert.IsFalse(file.IsDataModified);
         }
+
+        [Test]
+        public async Task ChangesSavePath()
+        {
+            var file = new DynamicPackageData(new Version(1,0), this);
+            file.Data.Children.Add(new PackageDataContractChild());
+            await file.Save(PackageFilename);
+
+            await AssertFileExistWithin(PackageFilename);
+            var secondPath = Path.Combine("saves/", Guid.NewGuid() + ".file");
+            await file.Save(secondPath);
+            await AssertFileExistWithin(secondPath);
+        }
+
+        [Test]
+        public async Task ChangeSavePathWritesContentToPackage()
+        {
+            var file = new DynamicPackageData(new Version(1,0), this);
+            file.Data.Children.Add(new PackageDataContractChild());
+            await file.Save(PackageFilename);
+            var secondPath = Path.Combine("saves/", Guid.NewGuid() + ".file");
+            await file.Save(secondPath);
+            Assert.AreNotEqual(new FileInfo(secondPath).Length, 0, "File length was zero.");
+        }
         
     }
 }

@@ -6,7 +6,7 @@ using System.Windows.Input;
 
 namespace DtronixPackage
 {
-    internal class ActionCommand : ICommand
+    internal class ActionCommand : IActionCommand
     {
         private readonly Action _execute;
         private readonly Action<object> _executeParam;

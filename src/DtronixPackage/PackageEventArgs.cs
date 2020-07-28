@@ -2,13 +2,13 @@
 
 namespace DtronixPackage
 {
-    public class FileEventArgs<T> : EventArgs
+    public class PackageEventArgs<T> : EventArgs
     {
-        public T File { get; set; }
+        public T Package { get; set; }
 
-        public FileEventArgs(T file)
+        public PackageEventArgs(T package)
         {
-            File = file;
+            Package = package;
         }
     }
 }

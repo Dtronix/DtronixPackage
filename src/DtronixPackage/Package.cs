@@ -11,6 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Media.Imaging;
 using DtronixPackage.RecursiveChangeNotifier;
+using DtronixPackage.Upgrades;
 using NLog;
 
 namespace DtronixPackage
@@ -35,7 +36,7 @@ namespace DtronixPackage
 
         private string _lockFilePath;
         private readonly SemaphoreSlim _packageOperationSemaphore = new SemaphoreSlim(1, 1);
-        private List<SaveLogItem> _saveLog = new List<SaveLogItem>();
+        private List<ChangelogEntry> _changelog = new List<ChangelogEntry>();
         private readonly Timer _autoSaveTimer;
         private bool _autoSaveEnabled;
         private readonly Dictionary<object, ChangeListener> _registeredListeners = new Dictionary<object, ChangeListener>();
@@ -43,6 +44,7 @@ namespace DtronixPackage
         private int _autoSaveDueTime = 60 * 1000;
         private bool _disposed;
         private bool _isDataModified;
+        private Version _openCoreVersion;
 
         protected static readonly Logger Logger = LogManager.GetCurrentClassLogger();
         private static readonly Version PackageVersion;
@@ -60,12 +62,12 @@ namespace DtronixPackage
         /// <summary>
         /// Contains a log of all the times this package has been saved.
         /// </summary>
-        public IReadOnlyList<SaveLogItem> SaveLog => _saveLog.AsReadOnly();
+        public IReadOnlyList<ChangelogEntry> Changelog => _changelog.AsReadOnly();
         
         /// <summary>
         /// Version of the opened package.
         /// </summary>
-        public Version OpenVersion { get; private set; }
+        public Version Version { get; private set; }
         
         /// <summary>
         /// If set to true, a ".BAK" package will be created with the previously saved package.
@@ -244,14 +246,15 @@ namespace DtronixPackage
         protected abstract string OnTempFilePathRequest(string fileName);
 
         /// <summary>
-        /// Gets a file inside this package.  Must close after usage.
+        /// Gets or creates a file inside this package.  Must close after usage.
         /// </summary>
         /// <param name="path">Path to the file inside the package.  Case sensitive.</param>
         /// <returns>Stream on existing file.  Null otherwise.</returns>
         protected internal Stream GetStream(string path)
         {
-            var file = _openArchive.Entries.FirstOrDefault(f => f.FullName == _appName + "/" + path);
-            return file?.Open();
+            var file = _openArchive.Entries.FirstOrDefault(f => f.FullName == _appName + "/" + path)
+                       ?? _openArchive.CreateEntry(_appName + "/" + path);
+            return file.Open();
         }
 
         /// <summary>
@@ -290,7 +293,7 @@ namespace DtronixPackage
         }
 
         /// <summary>
-        /// Checks to see if a file exists inside the pacakge.
+        /// Checks to see if a file exists inside the package.
         /// </summary>
         /// <param name="path">Path to find.</param>
         /// <returns>True if the file exists, false otherwise.</returns>
@@ -474,19 +477,33 @@ namespace DtronixPackage
                     return returnValue = new PackageOpenResult(PackageOpenResultType.UnknownFailure, e);
                 }
 
-                // Read the entire contents to memory for usage in read-only mode.
-                Stream openPackageStreamCopy = null;
+                // Read the entire contents to memory for usage in archive Update mode.
+                Stream openPackageStreamCopy = new MemoryStream();
+                await _openPackageStream.CopyToAsync(openPackageStreamCopy, cancellationToken);
+
                 if (openReadOnly)
                 {
-                    openPackageStreamCopy = new MemoryStream((int) _openPackageStream.Length);
-                    await _openPackageStream.CopyToAsync(openPackageStreamCopy, cancellationToken);
                     _openPackageStream.Close();
                     _openPackageStream = null;
                 }
 
                 try
                 {
-                    _openArchive = new ZipArchive(_openPackageStream ?? openPackageStreamCopy, ZipArchiveMode.Update, true);
+                    _openArchive = new ZipArchive(openPackageStreamCopy, ZipArchiveMode.Update);
+
+                    // Read the core version number
+                    var coreVersionEntry = _openArchive.Entries.FirstOrDefault(f => f.FullName == "version");
+
+                    if (coreVersionEntry == null)
+                    {                   
+                        // If the core version is not set, this is an older file which will need to be upgraded appropriately.
+                        _openCoreVersion = new Version(0, 0, 0);
+                    }
+                    else
+                    {
+                        using var reader = new StreamReader(coreVersionEntry.Open());
+                        _openCoreVersion = new Version(await reader.ReadToEndAsync());
+                    }
 
                     // Read the version information in the application directory.
                     var versionEntity = _openArchive.Entries.FirstOrDefault(f => f.FullName == _appName + "/version");
@@ -504,11 +521,13 @@ namespace DtronixPackage
                             return returnValue = new PackageOpenResult(PackageOpenResultType.Corrupted);
                     }
 
-                    using var reader = new StreamReader(versionEntity.Open());
-                    OpenVersion = new Version(await reader.ReadToEndAsync());
+                    using (var reader = new StreamReader(versionEntity.Open()))
+                    {
+                        Version = new Version(await reader.ReadToEndAsync());
+                    }
 
                     // Don't allow opening of newer packages on older applications.
-                    if (_appVersion < OpenVersion)
+                    if (_appVersion < Version)
                         return returnValue = new PackageOpenResult(PackageOpenResultType.IncompatibleVersion);
                 }
                 catch(Exception e)
@@ -516,29 +535,47 @@ namespace DtronixPackage
                     return returnValue = new PackageOpenResult(PackageOpenResultType.Corrupted, e);
                 }
 
+                // Perform any required core upgrades.
+                if (_openCoreVersion < PackageVersion)
+                {
+                    var packageUpgrades = new PackageUpgrade<TContent>[]
+                    {
+                        new PackageUpgrade_1_1_0<TContent>(),
+                    };
 
+                    var upgradeResult = await ApplyUpgrades(packageUpgrades, true, _openCoreVersion);
+
+                    // If the result is not null, the upgrade failed.
+                    if(upgradeResult != null)
+                        return returnValue = upgradeResult;
+                        
+                }
 
                 // Try to open the modified log file. It may not exist in older versions.
-                var saveLogEntry =
-                    _openArchive.Entries.FirstOrDefault(f => f.FullName == _appName + "/save_log.json");
+                var changelogEntry =
+                    _openArchive.Entries.FirstOrDefault(f => f.FullName == _appName + "/changelog.json");
 
-                if (saveLogEntry != null)
+                if (changelogEntry != null)
                 {
                     try
                     {
-                        await using var stream = saveLogEntry.Open();
-                        _saveLog = 
-                            await JsonSerializer.DeserializeAsync<List<SaveLogItem>>(stream, null, cancellationToken);
+                        _changelog.Clear();
+                        await using var stream = changelogEntry.Open();
+                        var logItems = await JsonSerializer.DeserializeAsync<ChangelogEntry[]>(stream, null, cancellationToken);
+
+                        foreach (var changelogItem in logItems)
+                            _changelog.Add(changelogItem);
+                        
                     }
                     catch (Exception e)
                     {
                         Logger.Error(e, "Could not parse save log.");
-                        _saveLog.Clear();
+                        _changelog.Clear();
                     }
                 }
 
                 // Perform upgrades at this time.
-                if (_appVersion > OpenVersion)
+                if (_appVersion > Version)
                 {
                     // "Renames" existing contents of this application's directory to a backup directory 
                     if (_preserveUpgrade)
@@ -552,7 +589,7 @@ namespace DtronixPackage
                                 continue;
 
                             // Renames all the sub-files if there was a version mis-match on open.
-                            var newName = _appName + $"-backup-{OpenVersion}/{entry.FullName}";
+                            var newName = _appName + $"-backup-{Version}/{entry.FullName}";
 
                             var saveEntry = _openArchive.CreateEntry(newName);
 
@@ -566,30 +603,11 @@ namespace DtronixPackage
                         }
                     }
 
-                    // Loop through each available upgrade.
-                    foreach (var upgrade in Upgrades.Where(upgrade => upgrade.Version > OpenVersion))
-                    {
-                        try
-                        {
-                            // Attempt to perform the upgrade
-                            if (!await upgrade.Upgrade(this, _openArchive))
-                            {
-                                // Upgrade soft failed, log it and notify the opener.
-                                Logger.Error($"Unable to perform upgrade of package {path} to version {upgrade.Version}.");
-                                return returnValue = new PackageOpenResult(PackageOpenResultType.UpgradeFailure);
-                            }
-                        }
-                        catch (Exception e)
-                        {
-                            // Upgrade hard failed.
-                            Logger.Error(e, $"Unable to perform upgrade of package {path} to version {upgrade.Version}.");
-                            return returnValue = new PackageOpenResult(PackageOpenResultType.UpgradeFailure);
-                        }
+                    var upgradeResult = await ApplyUpgrades(Upgrades, true, Version);
 
-                    }
-
-                    // Since we did perform an upgrade, set set that the package has been changed.
-                    IsDataModified = true;
+                    // If the result is not null, the upgrade failed.
+                    if(upgradeResult != null)
+                        return returnValue = upgradeResult;
                 }
 
                 // If we are not in read-only mode and we are using lock files, create a lock file
@@ -602,7 +620,7 @@ namespace DtronixPackage
                 OpenTime = DateTime.Now;
                 AutoSavePath = null;
 
-                return returnValue = await OnOpen(OpenVersion != _appVersion)
+                return returnValue = await OnOpen(Version != _appVersion)
                     ? PackageOpenResult.Success
                     : new PackageOpenResult(PackageOpenResultType.ReadingFailure);
 
@@ -716,11 +734,38 @@ namespace DtronixPackage
             Logger.ConditionalTrace("Acquired _packageOperationSemaphore");
 
             _saveFileList = new List<string>();
-            SavePath = path;
 
-            // If the package is new and not saved yet, a lock file has not been created.
-            if (_lockFile == null)
+            // Determine if we have changed save the save path location since the last save.
+            if (path != SavePath)
+            {
+                // If the package stream is open and we are changing the path, close the old stream.
+                if (_openPackageStream != null)
+                {
+                    _openPackageStream.Close();
+                    _openPackageStream = null;
+                }
+
+                SavePath = path;
+
+                // If the package is new and not saved yet, a lock file has not been created.
+                if (_lockFile != null)
+                {
+                    // If the _lockFile variable is set, and the path has changed, this means 
+                    // that there is an extra lock file which needs to be removed.  Try to remove it.
+                    try
+                    {
+                        _lockFile.Close();
+                        _lockFile = null;
+                        File.Delete(_lockFilePath);
+                    }
+                    catch (Exception e)
+                    {
+                        Logger.Info(e, "Unable to remove lock file at: {0}.", _lockFilePath);
+                    }
+                }
+
                 _lockFilePath = path + ".lock";
+            }
 
             // Lock file creation.
             try
@@ -736,15 +781,7 @@ namespace DtronixPackage
                         return new PackageSaveResult(PackageSaveResultType.Locked);
                 }
                 
-                var result = await SaveInternal(false);
-
-                if (result == PackageSaveResult.Success)
-                {
-                    // Reset the modified variable if we successfully saved.
-                    IsDataModified = false;
-                }
-
-                return result;
+                return await SaveInternal(false);
             }
             catch (IOException e)
             {
@@ -775,9 +812,9 @@ namespace DtronixPackage
                 using (_saveArchive = new ZipArchive(saveArchiveMemoryStream, ZipArchiveMode.Create, true))
                 {
                     // Write application version file
-                    await using (var fileVersionStream = CreateEntityStream("file_version", false))
+                    await using (var packageVersionStream = CreateEntityStream("version", false))
                     {
-                        await using var writer = new StreamWriter(fileVersionStream);
+                        await using var writer = new StreamWriter(packageVersionStream);
                         await writer.WriteAsync(PackageVersion.ToString());
                     }
 
@@ -786,23 +823,17 @@ namespace DtronixPackage
                     // Write package version file
                     await WriteString("version", _appVersion.ToString());
 
-                    var log = new SaveLogItem
-                    {
-                        ComputerName = Environment.MachineName,
-                        Username = Environment.UserName,
-                        Time = DateTimeOffset.Now,
-                        AutoSave = autoSave
-                    };
+                    var log = new ChangelogEntry(autoSave ? ChangelogItemType.AutoSave : ChangelogItemType.Save);
 
                     // Update the save log.
-                    _saveLog.Add(log);
+                    _changelog.Add(log);
 
                     // Write the save log.
-                    await WriteJson("save_log.json", _saveLog);
+                    await WriteJson("changelog.json", _changelog);
 
                     // If this is an auto save, we do not want to continually add auto save logs.
                     if (autoSave)
-                        _saveLog.Remove(log);
+                        _changelog.Remove(log);
 
                     if (_openArchive != null)
                     {
@@ -824,6 +855,8 @@ namespace DtronixPackage
                     }
                     
                 }
+
+                _saveArchive = null;
 
                 // Only save a backup package if we are not performing an auto save.
                 if (SaveBackupPackage && !autoSave)
@@ -896,7 +929,10 @@ namespace DtronixPackage
                 }
 
                 saveArchiveMemoryStream.Seek(0, SeekOrigin.Begin);
+
+                // Copy and flush the contents of the save file.
                 await saveArchiveMemoryStream.CopyToAsync(destinationStream);
+                await destinationStream.FlushAsync();
 
                 // If we were auto-saving, close the destination save and return true.
                 // We do not want to effect the current state of the rest of the package.
@@ -915,7 +951,7 @@ namespace DtronixPackage
                 // Save the new zip archive stream to the opened archive stream.
                 _openArchive = new ZipArchive(saveArchiveMemoryStream, ZipArchiveMode.Read, true);
 
-                OpenVersion = _appVersion;
+                Version = _appVersion;
 
                 return returnValue = PackageSaveResult.Success;
             }
@@ -1047,6 +1083,46 @@ namespace DtronixPackage
             }
         }
 
+        private async Task<PackageOpenResult> ApplyUpgrades(
+            IList<PackageUpgrade<TContent>> upgrades, 
+            bool coreUpgrade, 
+            Version compareVersion)
+        {
+            foreach (var upgrade in upgrades.Where(upgrade => upgrade.Version > compareVersion))
+            {
+                try
+                {
+                    // Attempt to perform the upgrade
+                    if (!await upgrade.Upgrade(this, _openArchive))
+                    {
+                        // Upgrade soft failed, log it and notify the opener.
+                        Logger.Error($"Unable to perform{{0}} upgrade of package to version {upgrade.Version}.",
+                            coreUpgrade ? " core" : " application");
+                        return new PackageOpenResult(PackageOpenResultType.UpgradeFailure);
+                    }
+
+                    _changelog.Add(new ChangelogEntry(coreUpgrade
+                        ? ChangelogItemType.CoreUpgrade
+                        : ChangelogItemType.ApplicationUpgrade)
+                    {
+                        Note = (coreUpgrade ? "Core" : "Application") + $" upgrade from {Version} to {_appVersion}"
+                    });
+                }
+                catch (Exception e)
+                {
+                    // Upgrade hard failed.
+                    Logger.Error(e, $"Unable to perform{{0}} upgrade of package to version {upgrade.Version}.",
+                        coreUpgrade ? " core" : " application");
+                    return new PackageOpenResult(PackageOpenResultType.UpgradeFailure, e);
+                }
+
+                // Since we did perform an upgrade, set set that the package has been changed.
+                IsDataModified = true;
+            }
+
+            return null;
+        }
+
         protected void MonitorRegister<T>(T obj)
             where T : INotifyPropertyChanged
         {
@@ -1153,13 +1229,14 @@ namespace DtronixPackage
             _openPackageStream?.Close();
             _openPackageStream = null;
             _lockFilePath = null;
-            _saveLog.Clear();
+            _changelog.Clear();
+            _openCoreVersion = null;
             foreach (var registeredListener in _registeredListeners)
                 registeredListener.Value.Dispose();
 
             _registeredListeners.Clear();
 
-            OpenVersion = null;
+            Version = null;
             SavePath = null;
 
             IsReadOnly = false;

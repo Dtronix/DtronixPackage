@@ -9,14 +9,14 @@ using Microsoft.Win32;
 
 namespace DtronixPackage
 {
-    public class FileManagerViewModel<TFile, TFileContent> : INotifyPropertyChanged
-        where TFile : Package<TFileContent>, new()
-        where TFileContent : PackageContent, new()
+    public abstract class PackageManagerViewModel<TPackage, TPackageContent> : INotifyPropertyChanged
+        where TPackage : Package<TPackageContent>, new()
+        where TPackageContent : PackageContent, new()
     {
         private readonly string _appName;
         private readonly Version _appVersion;
         public event PropertyChangedEventHandler PropertyChanged;
-        private TFile _file;
+        private TPackage _package;
         private string _windowTitle;
         private bool _addedModifiedText;
         
@@ -29,32 +29,32 @@ namespace DtronixPackage
         /// <summary>
         /// The currently managed file by the Manager.
         /// </summary>
-        public TFile File {
-            get => _file;
+        public TPackage Package {
+            get => _package;
             protected set
             {
-                if (_file != null)
-                    _file.MonitoredChanged -= FileOnMonitoredChanged;
+                if (_package != null)
+                    _package.MonitoredChanged -= PackageOnMonitoredChanged;
 
-                _file = value;
+                _package = value;
 
-                if (_file != null)
-                    _file.MonitoredChanged += FileOnMonitoredChanged;
+                if (_package != null)
+                    _package.MonitoredChanged += PackageOnMonitoredChanged;
 
-                _saveActionCommand.SetCanExecute(_file != null);
-                _saveAsActionCommand.SetCanExecute(_file != null);
-                _closeActionCommand.SetCanExecute(_file != null);
+                _saveActionCommand.SetCanExecute(_package != null);
+                _saveAsActionCommand.SetCanExecute(_package != null);
+                _closeActionCommand.SetCanExecute(_package != null);
 
                 OnPropertyChanged();
 
-                FileChanged?.Invoke(this, new FileEventArgs<TFile>(value));
+                FileChanged?.Invoke(this, new PackageEventArgs<TPackage>(value));
             }
         }
 
-        public event EventHandler<FileEventArgs<TFile>> Created;
+        public event EventHandler<PackageEventArgs<TPackage>> Created;
         public event EventHandler Closed;
-        public event EventHandler<FileEventArgs<TFile>> Opened;
-        public event EventHandler<FileEventArgs<TFile>> FileChanged;
+        public event EventHandler<PackageEventArgs<TPackage>> Opened;
+        public event EventHandler<PackageEventArgs<TPackage>> FileChanged;
 
         public event EventHandler<PackageMessageEventArgs> ShowMessage; 
 
@@ -64,14 +64,14 @@ namespace DtronixPackage
         private readonly ActionCommand _closeActionCommand;
         private readonly ActionCommand _newActionCommand;
 
-        public ICommand SaveCommand { get; }
-        public ICommand SaveAsCommand { get; }
-        public ICommand OpenCommand { get; }
-        public ICommand CloseCommand { get; }
-        public ICommand NewCommand { get; }
+        public IActionCommand SaveCommand { get; }
+        public IActionCommand SaveAsCommand { get; }
+        public IActionCommand OpenCommand { get; }
+        public IActionCommand CloseCommand { get; }
+        public IActionCommand NewCommand { get; }
 
-        public string FileFilter { get; set; }
-        public string DefaultFilename { get; set; }
+        public abstract string FileFilter { get; }
+        public abstract string DefaulPackageName { get; }
 
         public string WindowTitle
         {
@@ -83,9 +83,9 @@ namespace DtronixPackage
             }
         }
 
-        public bool IsReadOnly => File?.IsReadOnly == true;
+        public bool IsReadOnly => Package?.IsReadOnly == true;
 
-        public FileManagerViewModel(string appName, Version appVersion)
+        protected PackageManagerViewModel(string appName, Version appVersion)
         {
             _appName = appName;
             _appVersion = appVersion;
@@ -159,11 +159,11 @@ namespace DtronixPackage
 
         public async void OnWidowClosing(object sender, CancelEventArgs e)
         {
-            if (File == null || e.Cancel)
+            if (Package == null || e.Cancel)
                 return;
 
             // See if there are changes which need to be saved.
-            if (File.IsDataModified)
+            if (Package.IsDataModified)
             {
                 var askSaveResult = await AskSave();
 
@@ -201,22 +201,22 @@ namespace DtronixPackage
 
         private async void NewCommand_Execute()
         {
-            if (File?.IsDataModified == true)
+            if (Package?.IsDataModified == true)
             {
                 if (await AskSave() != MessageBoxResult.Yes)
                     return;
             }
 
-            var file = new TFile();
+            var file = new TPackage();
 
-            Created?.Invoke(this, new FileEventArgs<TFile>(file));
+            Created?.Invoke(this, new PackageEventArgs<TPackage>(file));
 
-            File = file;
+            Package = file;
 
             // If we can not save upon creating the file, don't do anything.
             if (!await Save())
             {
-                File = null;
+                Package = null;
             }
 
             StatusChange();
@@ -246,7 +246,7 @@ namespace DtronixPackage
         /// </summary>
         private async void CloseCommand_Execute()
         {
-            if (File?.IsDataModified == true)
+            if (Package?.IsDataModified == true)
             {
                 if (await AskSave() == MessageBoxResult.Cancel)
                     return;
@@ -258,8 +258,8 @@ namespace DtronixPackage
 
         private void Close()
         {
-            File?.Close();
-            File = null;
+            Package?.Close();
+            Package = null;
             Closed?.Invoke(this, EventArgs.Empty);
 
             StatusChange();
@@ -268,7 +268,7 @@ namespace DtronixPackage
         public async Task<bool> Open(string path, bool forceReadOnly)
         {
             // If there is already a file open, ask if you want to save the changes before opening another one.
-            if (File != null)
+            if (Package != null)
             {
                 if (await AskSave() == MessageBoxResult.Cancel)
                     return false;
@@ -276,7 +276,7 @@ namespace DtronixPackage
                 Close();
             }
 
-            var openFile = new TFile();
+            var openFile = new TPackage();
             var result = await openFile.Open(path, forceReadOnly);
             
             // If the file is locked, give the option to open read-only.
@@ -305,9 +305,9 @@ namespace DtronixPackage
 
             if (result.IsSuccessful)
             {
-                File = openFile;
+                Package = openFile;
                 StatusChange();
-                Opened?.Invoke(this, new FileEventArgs<TFile>(File));
+                Opened?.Invoke(this, new PackageEventArgs<TPackage>(Package));
                 return true;
             }
 
@@ -341,17 +341,17 @@ namespace DtronixPackage
 
         public async Task<bool> Save()
         {
-            if (File == null)
+            if (Package == null)
                 return false;
 
             // File is not saved and Read-only considerations.
-            if (string.IsNullOrEmpty(File.SavePath)
-                && !System.IO.File.Exists(File.SavePath) || File.IsReadOnly)
+            if (string.IsNullOrEmpty(Package.SavePath)
+                && !System.IO.File.Exists(Package.SavePath) || Package.IsReadOnly)
             {
                 return await SaveAs();
             }
 
-            var result = await File.Save(File.SavePath);
+            var result = await Package.Save(Package.SavePath);
             StatusChange();
             
             return result == PackageSaveResult.Success;
@@ -364,12 +364,12 @@ namespace DtronixPackage
                 Filter = FileFilter,
                 Title = "Save As",
                 CheckPathExists = true,
-                FileName = DefaultFilename
+                FileName = DefaulPackageName
             };
 
             if (saveFile.ShowDialog() == true)
             {
-                var result = await File.Save(saveFile.FileName);
+                var result = await Package.Save(saveFile.FileName);
 
                 switch (result.SaveResult)
                 {
@@ -403,35 +403,35 @@ namespace DtronixPackage
             _addedModifiedText = false;
             Application.Current.Dispatcher.Invoke(() =>
             {
-                if (File == null)
+                if (Package == null)
                 {
                     WindowTitle = _appName;
                 }
-                else if (File.SavePath != null && File.IsReadOnly)
+                else if (Package.SavePath != null && Package.IsReadOnly)
                 {
-                    WindowTitle = $"🔒 {_appName} - {File.SavePath} - Read Only";
+                    WindowTitle = $"🔒 {_appName} - {Package.SavePath} - Read Only";
                 }
-                else if (File.SavePath != null)
+                else if (Package.SavePath != null)
                 {
-                    WindowTitle = $"{_appName} - {File.SavePath}";
+                    WindowTitle = $"{_appName} - {Package.SavePath}";
                 }
 
                 // Add modified to the end if there are changes.
-                if(File?.IsDataModified == true) 
+                if(Package?.IsDataModified == true) 
                     WindowTitle += " (Modified)";
 
                 OnPropertyChanged(nameof(IsReadOnly));
             });
         }
 
-        private void FileOnMonitoredChanged(object sender, EventArgs e)
+        private void PackageOnMonitoredChanged(object sender, EventArgs e)
         {
             Application.Current.Dispatcher.Invoke(() => {          
                 // Change the save state to ensure we only save when there are changes.  Leave SaveAs alone.
-                _saveActionCommand.SetCanExecute(File?.IsDataModified == true);
+                _saveActionCommand.SetCanExecute(Package?.IsDataModified == true);
             });
 
-            if (_addedModifiedText || !File.IsDataModified)
+            if (_addedModifiedText || !Package.IsDataModified)
                 return;
 
             _addedModifiedText = true;
@@ -440,7 +440,7 @@ namespace DtronixPackage
                 WindowTitle += " (Modified)"; 
 
                 // Change the save state to ensure we only save when there are changes.  Leave SaveAs alone.
-                _saveActionCommand.SetCanExecute(File?.IsDataModified == true);
+                _saveActionCommand.SetCanExecute(Package?.IsDataModified == true);
             });
         }
     }
