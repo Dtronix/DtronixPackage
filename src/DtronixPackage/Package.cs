@@ -36,18 +36,20 @@ namespace DtronixPackage
 
         private string _lockFilePath;
         private readonly SemaphoreSlim _packageOperationSemaphore = new SemaphoreSlim(1, 1);
-        private List<ChangelogEntry> _changelog = new List<ChangelogEntry>();
+        private readonly List<ChangelogEntry> _changelog = new List<ChangelogEntry>();
         private readonly Timer _autoSaveTimer;
         private bool _autoSaveEnabled;
-        private readonly Dictionary<object, ChangeListener> _registeredListeners = new Dictionary<object, ChangeListener>();
+        private readonly Dictionary<object, ChangeListener> _registeredListeners 
+            = new Dictionary<object, ChangeListener>();
         private int _autoSavePeriod = 60 * 1000;
         private int _autoSaveDueTime = 60 * 1000;
         private bool _disposed;
         private bool _isDataModified;
-        private Version _openCoreVersion;
+        private Version _openPackageVersion;
 
         protected static readonly Logger Logger = LogManager.GetCurrentClassLogger();
-        private static readonly Version PackageVersion;
+        private static readonly Version PackageVersion 
+            = typeof(Package<TContent>).Assembly.GetName().Version;
 
         /// <summary>
         /// Called upon closure of a package.
@@ -65,7 +67,7 @@ namespace DtronixPackage
         public IReadOnlyList<ChangelogEntry> Changelog => _changelog.AsReadOnly();
         
         /// <summary>
-        /// Version of the opened package.
+        /// Application version of the opened package.
         /// </summary>
         public Version Version { get; private set; }
         
@@ -171,8 +173,8 @@ namespace DtronixPackage
         /// </param>
         /// <param name="preserveUpgrade">
         /// If set to true and a package opened is set on a previous version than specified in CurrentVersion,
-        /// A copy of all the files in the ProgramName directory is copied into a backup directory named
-        /// ProgramName-backup-CurrentVersion.
+        /// A copy of all the files in the ApplicationName directory is copied into a backup directory named
+        /// ApplicationName-backup-CurrentVersion.
         /// </param>
         /// <param name="useLockFile">
         /// If set to true and a lockfile exists "filename.ext.lock", then the opening process is aborted and
@@ -195,19 +197,14 @@ namespace DtronixPackage
                 IgnoreNullValues = true,
                 WriteIndented = false,
                 ReadCommentHandling = JsonCommentHandling.Skip,
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                PropertyNamingPolicy = null,
                 AllowTrailingCommas = true,
             };
 
         }
 
-        static Package()
-        {
-            PackageVersion = typeof(Package<TContent>).Assembly.GetName().Version;
-        }
-
         /// <summary>
-        /// Method called when opening a package file and to run the program specific opening code.
+        /// Method called when opening a package file and to run the application specific opening code.
         /// By default, will read content.json and copy the contents to the Content object.
         /// </summary>
         /// <param name="isUpgrade"></param>
@@ -252,9 +249,8 @@ namespace DtronixPackage
         /// <returns>Stream on existing file.  Null otherwise.</returns>
         protected internal Stream GetStream(string path)
         {
-            var file = _openArchive.Entries.FirstOrDefault(f => f.FullName == _appName + "/" + path)
-                       ?? _openArchive.CreateEntry(_appName + "/" + path);
-            return file.Open();
+            var file = _openArchive.Entries.FirstOrDefault(f => f.FullName == _appName + "/" + path);
+            return file?.Open();
         }
 
         /// <summary>
@@ -273,7 +269,7 @@ namespace DtronixPackage
         /// Reads a JSON document from the specified path inside the package.
         /// </summary>
         /// <typeparam name="T">Type of JSON file to convert into.</typeparam>
-        /// <param name="path">Path to open.  This is a sub-directory of the program name.</param>
+        /// <param name="path">Path to open.</param>
         /// <returns>Decoded JSON object.</returns>
         protected internal async ValueTask<T> ReadJson<T>(string path)
         {
@@ -284,7 +280,7 @@ namespace DtronixPackage
         /// <summary>
         /// Open a JSON file inside the current application directory.
         /// </summary>
-        /// <param name="path">Path to open.  This is a sub-directory of the program name.</param>
+        /// <param name="path">Path to open.</param>
         /// <returns>Decoded JSON object.</returns>
         protected internal Task<JsonDocument> ReadJsonDocument(string path)
         {
@@ -331,7 +327,7 @@ namespace DtronixPackage
         /// <summary>
         /// Writes a string to a text file at the specified path inside the package.
         /// </summary>
-        /// <param name="path">Path to save.  This is a sub-directory of the program name.</param>
+        /// <param name="path">Path to save.</param>
         /// <param name="text">String of data to save.</param>
         protected internal async Task WriteString(string path, string text)
         {
@@ -345,7 +341,7 @@ namespace DtronixPackage
         /// <summary>
         /// Writes a stream to a file at the specified path inside the package.
         /// </summary>
-        /// <param name="path">Path to save.  This is a sub-directory of the program name.</param>
+        /// <param name="path">Path to save.</param>
         /// <param name="stream">Stream of data to save.</param>
         protected internal async Task WriteStream(string path, Stream stream)
         {
@@ -354,9 +350,19 @@ namespace DtronixPackage
         }
 
         /// <summary>
+        /// Returns a stream to the file at the specified location. Blocks other writes until stream is closed.
+        /// </summary>
+        /// <param name="path">Path to save.</param>
+        /// <returns>Writable stream.</returns>
+        protected Stream WriteGetStream(string path)
+        {
+            return CreateEntityStream(path, true);
+        }
+
+        /// <summary>
         /// Saves a stream of data into the current application directory.
         /// </summary>
-        /// <param name="path">Path to save.  This is a sub-directory of the program name.</param>
+        /// <param name="path">Path to save.</param>
         /// <param name="encoder">Encoder data to save.</param>
         protected internal void WriteBitmapEncoder(string path, BitmapEncoder encoder)
         {
@@ -376,20 +382,20 @@ namespace DtronixPackage
         /// Helper function to create a new entity at the specified path and return a stream.
         /// Stream must be closed.
         /// </summary>
-        /// <param name="path">Path to the entity.  Note, this prefixes the program name to the path.</param>
-        /// <param name="prefixProgramName">
+        /// <param name="path">Path to the entity.  Note, this prefixes the application name to the path.</param>
+        /// <param name="prefixApplicationName">
         /// Set to true to have the application name be prefixed to all the passed paths.
         /// </param>
         /// <param name="compressionLevel">Compression level for the entity</param>
         /// <returns>Stream to the entity.  Must be closed.</returns>
         private Stream CreateEntityStream(string path,
-            bool prefixProgramName,
+            bool prefixApplicationName,
             CompressionLevel compressionLevel = CompressionLevel.Optimal)
         {
             if (_saveFileList == null)
                 throw new Exception("Can not access save functions while outside of a OnSave call");
 
-            var entityPath = prefixProgramName
+            var entityPath = prefixApplicationName
                 ? _appName + "/" + path
                 : path;
 
@@ -491,18 +497,18 @@ namespace DtronixPackage
                 {
                     _openArchive = new ZipArchive(openPackageStreamCopy, ZipArchiveMode.Update);
 
-                    // Read the core version number
-                    var coreVersionEntry = _openArchive.Entries.FirstOrDefault(f => f.FullName == "version");
+                    // Read the package version number
+                    var packageVersionEntry = _openArchive.Entries.FirstOrDefault(f => f.FullName == "version");
 
-                    if (coreVersionEntry == null)
+                    if (packageVersionEntry == null)
                     {                   
-                        // If the core version is not set, this is an older file which will need to be upgraded appropriately.
-                        _openCoreVersion = new Version(0, 0, 0);
+                        // If the package version is not set, this is an older file which will need to be upgraded appropriately.
+                        _openPackageVersion = new Version(0, 0, 0);
                     }
                     else
                     {
-                        using var reader = new StreamReader(coreVersionEntry.Open());
-                        _openCoreVersion = new Version(await reader.ReadToEndAsync());
+                        using var reader = new StreamReader(packageVersionEntry.Open());
+                        _openPackageVersion = new Version(await reader.ReadToEndAsync());
                     }
 
                     // Read the version information in the application directory.
@@ -535,20 +541,19 @@ namespace DtronixPackage
                     return returnValue = new PackageOpenResult(PackageOpenResultType.Corrupted, e);
                 }
 
-                // Perform any required core upgrades.
-                if (_openCoreVersion < PackageVersion)
+                // Perform any required package upgrades.
+                if (_openPackageVersion < PackageVersion)
                 {
                     var packageUpgrades = new PackageUpgrade[]
                     {
                         new PackageUpgrade_1_1_0(),
                     };
 
-                    var upgradeResult = await ApplyUpgrades(packageUpgrades, true, _openCoreVersion);
+                    var upgradeResult = await ApplyUpgrades(packageUpgrades, true, _openPackageVersion);
 
                     // If the result is not null, the upgrade failed.
                     if(upgradeResult != null)
                         return returnValue = upgradeResult;
-                        
                 }
 
                 // Try to open the modified log file. It may not exist in older versions.
@@ -561,7 +566,10 @@ namespace DtronixPackage
                     {
                         _changelog.Clear();
                         await using var stream = changelogEntry.Open();
-                        var logItems = await JsonSerializer.DeserializeAsync<ChangelogEntry[]>(stream, null, cancellationToken);
+                        var logItems = await JsonSerializer.DeserializeAsync<ChangelogEntry[]>(
+                            stream, 
+                            null, 
+                            cancellationToken);
 
                         foreach (var changelogItem in logItems)
                             _changelog.Add(changelogItem);
@@ -1085,7 +1093,7 @@ namespace DtronixPackage
 
         private async Task<PackageOpenResult> ApplyUpgrades(
             IList<PackageUpgrade> upgrades, 
-            bool coreUpgrade, 
+            bool packageUpgrade, 
             Version compareVersion)
         {
             foreach (var upgrade in upgrades.Where(upgrade => upgrade.Version > compareVersion))
@@ -1097,22 +1105,24 @@ namespace DtronixPackage
                     {
                         // Upgrade soft failed, log it and notify the opener.
                         Logger.Error($"Unable to perform{{0}} upgrade of package to version {upgrade.Version}.",
-                            coreUpgrade ? " core" : " application");
+                            packageUpgrade ? " package" : " application");
                         return new PackageOpenResult(PackageOpenResultType.UpgradeFailure);
                     }
 
-                    _changelog.Add(new ChangelogEntry(coreUpgrade
-                        ? ChangelogItemType.CoreUpgrade
+                    _changelog.Add(new ChangelogEntry(packageUpgrade
+                        ? ChangelogItemType.PackageUpgrade
                         : ChangelogItemType.ApplicationUpgrade)
                     {
-                        Note = (coreUpgrade ? "Core" : "Application") + $" upgrade from {Version} to {_appVersion}"
+                        Note = packageUpgrade 
+                            ? $"Package upgrade from {_openPackageVersion} to {PackageVersion}"
+                            : $"Application upgrade from {Version} to {_appVersion}"
                     });
                 }
                 catch (Exception e)
                 {
                     // Upgrade hard failed.
                     Logger.Error(e, $"Unable to perform{{0}} upgrade of package to version {upgrade.Version}.",
-                        coreUpgrade ? " core" : " application");
+                        packageUpgrade ? " package" : " application");
                     return new PackageOpenResult(PackageOpenResultType.UpgradeFailure, e);
                 }
 
@@ -1213,7 +1223,7 @@ namespace DtronixPackage
                 }
                 catch (IOException)
                 {
-                    // Usually means that another program has this file opened for reading.
+                    // Usually means that another application has this file opened for reading.
                 }
             }
 
@@ -1230,7 +1240,7 @@ namespace DtronixPackage
             _openPackageStream = null;
             _lockFilePath = null;
             _changelog.Clear();
-            _openCoreVersion = null;
+            _openPackageVersion = null;
             foreach (var registeredListener in _registeredListeners)
                 registeredListener.Value.Dispose();
 

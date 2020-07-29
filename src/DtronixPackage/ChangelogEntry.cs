@@ -41,5 +41,22 @@ namespace DtronixPackage
         {
             
         }
+
+        public override string ToString()
+        {
+            switch (Type)
+            {
+                case ChangelogItemType.PackageUpgrade:
+                    return "PackageUpgrade: " + Note;
+                case ChangelogItemType.ApplicationUpgrade:
+                    return "ApplicationUpgrade: " + Note;
+                case ChangelogItemType.Save:
+                    return "Save: " + Time.ToString("g");
+                case ChangelogItemType.AutoSave:
+                    return "AutoSave: " + Time.ToString("g");
+                default:
+                    return Type.ToString();
+            }
+        }
     }
 }

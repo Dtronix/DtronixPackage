@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.IO.Compression;
 using System.Linq;
 using System.Text.Json;
@@ -6,6 +7,15 @@ using System.Threading.Tasks;
 
 namespace DtronixPackage.Upgrades
 {
+
+    /// <summary>
+    /// Changes non-backup save_log.json files to changelog.json.
+    ///     Updates formatting of file for new Type property.
+    /// Deletes old file_version file if it exists.
+    /// </summary>
+    [SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Local")]
+    [SuppressMessage("ReSharper", "InconsistentNaming")]
+    [SuppressMessage("ReSharper", "ClassNeverInstantiated.Local")]
     public class PackageUpgrade_1_1_0 : PackageUpgrade
     {
         private class SaveLogEntry {
@@ -52,6 +62,9 @@ namespace DtronixPackage.Upgrades
 
                 zipArchiveEntry.Delete();
             }
+
+            var fileVersionFile = archiveEntries.FirstOrDefault(f => f.FullName == "file_version");
+            fileVersionFile?.Delete();
 
             return true;
         }
