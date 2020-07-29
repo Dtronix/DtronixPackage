@@ -14,7 +14,7 @@ namespace DtronixPackage.Tests
 
         public Func<string> TempPackagePathRequest;
 
-        public List<PackageUpgrade<PackageContent>> UpgradeOverrides => Upgrades;
+        public List<PackageUpgrade> UpgradeOverrides => Upgrades;
 
         public DynamicPackage(
             Version appVersion,

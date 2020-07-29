@@ -93,7 +93,7 @@ namespace DtronixPackage
         /// Contains a list of upgrades which will be performed on older versions of packages.
         /// Add to this list to include additional upgrades.  Will execute in the order listed.
         /// </summary>
-        protected List<PackageUpgrade<TContent>> Upgrades { get; } = new List<PackageUpgrade<TContent>>();
+        protected List<PackageUpgrade> Upgrades { get; } = new List<PackageUpgrade>();
 
         /// <summary>
         /// True if the package has auto-save turned on.
@@ -538,9 +538,9 @@ namespace DtronixPackage
                 // Perform any required core upgrades.
                 if (_openCoreVersion < PackageVersion)
                 {
-                    var packageUpgrades = new PackageUpgrade<TContent>[]
+                    var packageUpgrades = new PackageUpgrade[]
                     {
-                        new PackageUpgrade_1_1_0<TContent>(),
+                        new PackageUpgrade_1_1_0(),
                     };
 
                     var upgradeResult = await ApplyUpgrades(packageUpgrades, true, _openCoreVersion);
@@ -1084,7 +1084,7 @@ namespace DtronixPackage
         }
 
         private async Task<PackageOpenResult> ApplyUpgrades(
-            IList<PackageUpgrade<TContent>> upgrades, 
+            IList<PackageUpgrade> upgrades, 
             bool coreUpgrade, 
             Version compareVersion)
         {
@@ -1093,7 +1093,7 @@ namespace DtronixPackage
                 try
                 {
                     // Attempt to perform the upgrade
-                    if (!await upgrade.Upgrade(this, _openArchive))
+                    if (!await upgrade.Upgrade(_openArchive))
                     {
                         // Upgrade soft failed, log it and notify the opener.
                         Logger.Error($"Unable to perform{{0}} upgrade of package to version {upgrade.Version}.",

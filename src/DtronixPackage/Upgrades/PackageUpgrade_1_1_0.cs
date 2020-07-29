@@ -6,8 +6,7 @@ using System.Threading.Tasks;
 
 namespace DtronixPackage.Upgrades
 {
-    internal class PackageUpgrade_1_1_0<T> : PackageUpgrade<T>
-        where T : PackageContent, new()
+    public class PackageUpgrade_1_1_0 : PackageUpgrade
     {
         private class SaveLogEntry {
             public string Username { get; set; } 
@@ -25,7 +24,7 @@ namespace DtronixPackage.Upgrades
             var archiveEntries = archive.Entries.ToArray();
             foreach (var zipArchiveEntry in archiveEntries)
             {
-                if(zipArchiveEntry.Name != "save_log.json" || zipArchiveEntry.Name.Contains("-backup-"))
+                if(zipArchiveEntry.Name != "save_log.json" || zipArchiveEntry.FullName.Contains("-backup-"))
                     continue;
 
                 SaveLogEntry[] saveLogs;
@@ -45,7 +44,7 @@ namespace DtronixPackage.Upgrades
                 }
 
                 var basePath = zipArchiveEntry.FullName.Replace(zipArchiveEntry.Name, "");
-                var changelogEntry = archive.CreateEntry(basePath + "/changelog.json");
+                var changelogEntry = archive.CreateEntry(basePath + "changelog.json");
                 await using (var saveLogStream = changelogEntry.Open())
                 {
                     await JsonSerializer.SerializeAsync(saveLogStream, changelogEntries);

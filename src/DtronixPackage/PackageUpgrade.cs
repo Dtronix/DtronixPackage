@@ -4,10 +4,8 @@ using System.Threading.Tasks;
 
 namespace DtronixPackage
 {
-    public abstract class PackageUpgrade<T>
-        where T : PackageContent, new()
+    public abstract class PackageUpgrade
     {
-        protected Package<T> File { get; private set; }
         public Version Version { get; }
 
         protected PackageUpgrade(Version version)
@@ -15,9 +13,8 @@ namespace DtronixPackage
             Version = version;
         }
 
-        public Task<bool> Upgrade(Package<T> file, ZipArchive archive)
+        public Task<bool> Upgrade(ZipArchive archive)
         {
-            File = file;
             return OnUpgrade(archive);
         }
 

@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 namespace DtronixPackage.Tests.IntegrationTests
 {
     // ReSharper disable once InconsistentNaming
-    class PackageUpgradeCallback : PackageUpgrade<PackageContent>
+    class PackageUpgradeCallback : PackageUpgrade
     {
 
         private readonly Func<DtronixPackageCallbackUpgradeCallbackEventArgs, Task<bool>> Upgrading;
