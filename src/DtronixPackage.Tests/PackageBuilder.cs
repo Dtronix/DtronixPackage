@@ -24,14 +24,14 @@ namespace DtronixPackage.Tests
             return path;
         }
 
-        public Task<ZipArchive> CreateZipArchive((string Path, object Data)[] contents)
+        public static Task<ZipArchive> CreateZipArchive((string Path, object Data)[] contents)
         {
             var ms = new MemoryStream();
             var archive = CreateZipArchive(ms, contents);
             return archive;
         }
 
-        public async Task<ZipArchive> CreateZipArchive(Stream stream, (string Path, object Data)[] contents)
+        public static async Task<ZipArchive> CreateZipArchive(Stream stream, (string Path, object Data)[] contents)
         {
             var archive = new ZipArchive(stream, ZipArchiveMode.Update, true);
             foreach (var content in contents)

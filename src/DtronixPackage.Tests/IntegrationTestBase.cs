@@ -91,17 +91,17 @@ namespace DtronixPackage.Tests
 
         }
 
-        protected async Task AssertFileExistWithin(string path, int timeout = 5000)
+        protected static async Task AssertFileExistWithin(string path, int timeout = 5000)
         {
             Assert.IsTrue(await FileExistWithin(path, timeout), $"File {path} does not exist.");
         }
 
-        protected async Task AssertFileDoesNotExistWithin(string path, int timeout = 100)
+        protected static async Task AssertFileDoesNotExistWithin(string path, int timeout = 100)
         {
             Assert.IsFalse(await FileExistWithin(path, timeout), $"File {path} exists.");
         }
 
-        protected async Task<bool> FileExistWithin(string path, int timeout)
+        protected static async Task<bool> FileExistWithin(string path, int timeout)
         {
             Logger.Trace("FileExistWithin(path: {0}, timeout: {1})", path, timeout);
             if (File.Exists(path))
@@ -143,7 +143,7 @@ namespace DtronixPackage.Tests
         }
 
         
-        protected void AssertFileIsReadOnly(string path)
+        protected static void AssertFileIsReadOnly(string path)
         {
             Assert.Multiple(() =>
             {

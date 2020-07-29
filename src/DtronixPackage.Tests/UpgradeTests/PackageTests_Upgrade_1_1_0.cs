@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Text.Json;
@@ -19,7 +20,7 @@ namespace DtronixPackage.Tests.UpgradeTests
         {
             public string Username { get; }
             public string ComputerName { get; }
-            public DateTime Time { get; }
+            public DateTimeOffset Time { get; }
             public bool? AutoSave { get; }
 
             public SaveLogEntry(string username, string computerName, DateTime time, bool? autoSave)
@@ -35,6 +36,7 @@ namespace DtronixPackage.Tests.UpgradeTests
         {
             return await PackageBuilder.CreateZipArchive(new (string Path, object Data)[]
             {
+                ("file_version", "0.1.0"),
                 ("UpgradeTest/save_log.json", new[]
                 {
                     new SaveLogEntry("TestUser1", "GeneralComputer1", DateTime.Now, null),
@@ -68,6 +70,9 @@ namespace DtronixPackage.Tests.UpgradeTests
         {
             var changelogJson = Package.Entries.First(e => e.FullName == "UpgradeTest/changelog.json");
             await using var stream = changelogJson.Open();
+            var sr = new StreamReader(stream);
+            var src = sr.ReadToEnd();
+            stream.Position = 0;
             var changelogEntries = await JsonSerializer.DeserializeAsync<ChangelogEntry[]>(stream);
 
             Assert.AreEqual("TestUser1", changelogEntries[0].Username);
@@ -87,6 +92,12 @@ namespace DtronixPackage.Tests.UpgradeTests
         public void DeletesSaveLog()
         {
             Assert.IsFalse(Package.Entries.Any(e => e.FullName == "UpgradeTest/save_log.json"));
+        }
+
+        [Test]
+        public void DeletesFileVersion()
+        {
+            Assert.IsFalse(Package.Entries.Any(e => e.FullName == "file_version"));
         }
     }
 }
