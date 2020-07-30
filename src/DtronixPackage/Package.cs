@@ -12,7 +12,6 @@ using System.Threading.Tasks;
 using System.Windows.Media.Imaging;
 using DtronixPackage.RecursiveChangeNotifier;
 using DtronixPackage.Upgrades;
-using NLog;
 
 namespace DtronixPackage
 {
@@ -47,7 +46,8 @@ namespace DtronixPackage
         private bool _isDataModified;
         private Version _openPackageVersion;
 
-        protected static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+        protected static ILogger Logger;
+
         private static readonly Version PackageVersion 
             = typeof(Package<TContent>).Assembly.GetName().Version;
 
@@ -105,7 +105,7 @@ namespace DtronixPackage
             get => _autoSaveEnabled;
             set
             {
-                Logger.ConditionalTrace("AutoSaveEnabled = {0}.", value);
+                Logger?.ConditionalTrace($"AutoSaveEnabled = {value}.");
                 _autoSaveEnabled = value;
                 SetAutoSaveTimer();
             }
@@ -217,7 +217,7 @@ namespace DtronixPackage
             }
             catch (Exception e)
             {
-                Logger.Error(e, "Unable to parse content.json file.");
+                Logger?.Error(e, "Unable to parse content.json file.");
                 Content = null;
                 return false;
             }
@@ -236,7 +236,7 @@ namespace DtronixPackage
             }
             catch (Exception e)
             {
-                Logger.Error(e, "Unable to write content.json file.");
+                Logger?.Error(e, "Unable to write content.json file.");
             }
         }
 
@@ -479,7 +479,7 @@ namespace DtronixPackage
                 }
                 catch (Exception e)
                 {
-                    Logger.Error(e, "Unknown error while opening file.");
+                    Logger?.Error(e, "Unknown error while opening file.");
                     return returnValue = new PackageOpenResult(PackageOpenResultType.UnknownFailure, e);
                 }
 
@@ -577,7 +577,7 @@ namespace DtronixPackage
                     }
                     catch (Exception e)
                     {
-                        Logger.Error(e, "Could not parse save log.");
+                        Logger?.Error(e, "Could not parse save log.");
                         _changelog.Clear();
                     }
                 }
@@ -735,11 +735,11 @@ namespace DtronixPackage
             if (string.IsNullOrWhiteSpace(path))
                 throw new ArgumentNullException(nameof(path));
 
-            Logger.ConditionalTrace("Requesting _packageOperationSemaphore");
+            Logger?.ConditionalTrace("Requesting _packageOperationSemaphore");
             // Ensure we are not already saving.
             await _packageOperationSemaphore.WaitAsync();
 
-            Logger.ConditionalTrace("Acquired _packageOperationSemaphore");
+            Logger?.ConditionalTrace("Acquired _packageOperationSemaphore");
 
             _saveFileList = new List<string>();
 
@@ -768,7 +768,7 @@ namespace DtronixPackage
                     }
                     catch (Exception e)
                     {
-                        Logger.Info(e, "Unable to remove lock file at: {0}.", _lockFilePath);
+                        Logger?.Info(e, $"Unable to remove lock file at: {_lockFilePath}.");
                     }
                 }
 
@@ -810,7 +810,7 @@ namespace DtronixPackage
         /// <returns>Result of saving</returns>
         private async Task<PackageSaveResult> SaveInternal(bool autoSave)
         {
-            Logger.ConditionalTrace("SaveInternal(autoSave:{0})", autoSave);
+            Logger?.ConditionalTrace($"SaveInternal(autoSave:{autoSave})");
             PackageSaveResult returnValue = null;
             try
             {
@@ -869,30 +869,30 @@ namespace DtronixPackage
                 // Only save a backup package if we are not performing an auto save.
                 if (SaveBackupPackage && !autoSave)
                 {
-                    Logger.ConditionalTrace("Saving backup package.");
+                    Logger?.ConditionalTrace("Saving backup package.");
                     var bakPackage = SavePath + ".bak";
                     try
                     {
-                        Logger.ConditionalTrace("Checking for existence of {0} backup .", bakPackage);
+                        Logger?.ConditionalTrace($"Checking for existence of {bakPackage} backup .");
                         if (File.Exists(bakPackage))
                         {
-                            Logger.ConditionalTrace("Found backup package.");
+                            Logger?.ConditionalTrace("Found backup package.");
                             File.SetAttributes(bakPackage, FileAttributes.Normal);
                             File.Delete(bakPackage);
-                            Logger.ConditionalTrace("Deleted backup package.");
+                            Logger?.ConditionalTrace("Deleted backup package.");
                         }
 
                         // Close the lock held on the file.  On initial save, there is nothing to close.
                         _openPackageStream?.Close();
                         _openPackageStream = null;
 
-                        Logger.ConditionalTrace("Closed _openPackageStream.");
-                        Logger.ConditionalTrace("Checking for existence of existing save package {0}", SavePath);
+                        Logger?.ConditionalTrace("Closed _openPackageStream.");
+                        Logger?.ConditionalTrace($"Checking for existence of existing save package {SavePath}");
 
                         if (File.Exists(SavePath))
                         {
                             File.Move(SavePath, bakPackage);
-                            Logger.ConditionalTrace("Found existing save package and renamed to {0}", bakPackage);
+                            Logger?.ConditionalTrace($"Found existing save package and renamed to {bakPackage}");
                         }
                     }
                     catch (Exception e)
@@ -920,19 +920,19 @@ namespace DtronixPackage
 
                 if (autoSave)
                 {
-                    Logger.ConditionalTrace("Creating AutoSave package {0}.", AutoSavePath);
+                    Logger?.ConditionalTrace($"Creating AutoSave package {AutoSavePath}.");
                 }
 
                 var destinationStream = autoSave ? File.Create(AutoSavePath) : _openPackageStream;
 
                 if (autoSave)
                 {
-                    Logger.ConditionalTrace("Created AutoSave package {0}.", AutoSavePath);
+                    Logger?.ConditionalTrace($"Created AutoSave package {AutoSavePath}.");
                 }
 
                 if (destinationStream == null)
                 {
-                    Logger.ConditionalTrace("Could not create/use destination stream.");
+                    Logger?.ConditionalTrace("Could not create/use destination stream.");
                     return returnValue = new PackageSaveResult(PackageSaveResultType.Failure);
                 }
 
@@ -947,7 +947,7 @@ namespace DtronixPackage
                 if (autoSave)
                 {
                     destinationStream.Close();
-                    Logger.ConditionalTrace("Closed AutoSave destination stream.", AutoSavePath);
+                    Logger?.ConditionalTrace("Closed AutoSave destination stream.");
                     return returnValue = PackageSaveResult.Success;
                 }
 
@@ -981,11 +981,11 @@ namespace DtronixPackage
                     IsReadOnly = false;
                 }
 
-                Logger.ConditionalTrace("InternalSave return: {0}", returnValue);
+                Logger?.ConditionalTrace($"InternalSave return: {returnValue}");
 
                 _saveFileList = null;
 
-                Logger.ConditionalTrace("Released _packageOperationSemaphore");
+                Logger?.ConditionalTrace("Released _packageOperationSemaphore");
                 _packageOperationSemaphore.Release();
             }
         }
@@ -1004,7 +1004,7 @@ namespace DtronixPackage
         /// </param>
         public async Task ConfigureAutoSave(int dueTime, int period)
         {
-            Logger.ConditionalTrace("ConfigureAutoSave(dueTime:{0}, period:{1})", dueTime, period);
+            Logger?.ConditionalTrace($"ConfigureAutoSave(dueTime:{dueTime}, period:{period})");
 
             if (dueTime < -1)
                 throw new ArgumentOutOfRangeException(nameof(dueTime), "Value must be -1 or higher.");
@@ -1017,7 +1017,7 @@ namespace DtronixPackage
 
             if (dueTime == 0)
             {
-                Logger.ConditionalTrace("Running auto save immediately.");
+                Logger?.ConditionalTrace("Running auto save immediately.");
                 // If we call for it to save once immediately, call now.
                 await AutoSave(true);
 
@@ -1025,7 +1025,7 @@ namespace DtronixPackage
                 // just synchronously called the AutoSaveElapsed method.
                 if (period > -1)
                 {
-                    Logger.ConditionalTrace("Forward setting since AutoSave was just called. _autoSaveDueTime = {0}", period);
+                    Logger?.ConditionalTrace($"Forward setting since AutoSave was just called. _autoSaveDueTime = {period}");
                     _autoSaveDueTime = period;
                 }
                 else
@@ -1041,7 +1041,7 @@ namespace DtronixPackage
 
         private async Task AutoSave(bool synchronous)
         {
-            Logger.ConditionalTrace("AutoSave(synchronous:{0})", synchronous);
+            Logger?.ConditionalTrace($"AutoSave(synchronous:{synchronous})");
 
             // If the AutoSave path has not been set, set it now.
             AutoSavePath ??= OnTempFilePathRequest(OpenTime.ToString("yyyy-MM-dd-T-HH-mm-ss-fff") + ".sav");
@@ -1050,10 +1050,10 @@ namespace DtronixPackage
             if ((AutoSaveEnabled || synchronous) && IsDataModifiedSinceAutoSave)
             {
 
-                Logger.ConditionalTrace("Requesting _packageOperationSemaphore");
+                Logger?.ConditionalTrace("Requesting _packageOperationSemaphore");
                 // Ensure we are not already saving.
                 await _packageOperationSemaphore.WaitAsync();
-                Logger.ConditionalTrace("Acquired _packageOperationSemaphore");
+                Logger?.ConditionalTrace("Acquired _packageOperationSemaphore");
 
                 _saveFileList = new List<string>();
                 var saveResult = await SaveInternal(true);
@@ -1065,14 +1065,14 @@ namespace DtronixPackage
                 }
                 else
                 {
-                    Logger.Error(saveResult.Exception, $"Could not successfully auto-save package {saveResult.SaveResult}");
+                    Logger?.Error(saveResult.Exception, $"Could not successfully auto-save package {saveResult.SaveResult}");
                 }
             }
         }
 
         private void AutoSaveElapsed(object state)
         {
-            Logger.ConditionalTrace("AutoSaveElapsed()");
+            Logger?.ConditionalTrace("AutoSaveElapsed()");
             _ = AutoSave(false);
         }
 
@@ -1081,12 +1081,12 @@ namespace DtronixPackage
             // Update the current timer if it is running.
             if (_autoSaveEnabled)
             {
-                Logger.ConditionalTrace("_autoSaveDueTime = {0}; _autoSavePeriod = {1}", _autoSaveDueTime, _autoSavePeriod);
+                Logger?.ConditionalTrace($"_autoSaveDueTime = {_autoSaveDueTime}; _autoSavePeriod = {_autoSavePeriod}");
                 _autoSaveTimer.Change(_autoSaveDueTime, _autoSavePeriod);
             }
             else
             {
-                Logger.ConditionalTrace("_autoSaveDueTime = -1; _autoSavePeriod = -1");
+                Logger?.ConditionalTrace("_autoSaveDueTime = -1; _autoSavePeriod = -1");
                 _autoSaveTimer.Change(-1, -1);
             }
         }
@@ -1104,8 +1104,7 @@ namespace DtronixPackage
                     if (!await upgrade.Upgrade(_openArchive))
                     {
                         // Upgrade soft failed, log it and notify the opener.
-                        Logger.Error($"Unable to perform{{0}} upgrade of package to version {upgrade.Version}.",
-                            packageUpgrade ? " package" : " application");
+                        Logger?.Error($"Unable to perform{(packageUpgrade ? " package" : " application")} upgrade of package to version {upgrade.Version}.");
                         return new PackageOpenResult(PackageOpenResultType.UpgradeFailure);
                     }
 
@@ -1121,8 +1120,7 @@ namespace DtronixPackage
                 catch (Exception e)
                 {
                     // Upgrade hard failed.
-                    Logger.Error(e, $"Unable to perform{{0}} upgrade of package to version {upgrade.Version}.",
-                        packageUpgrade ? " package" : " application");
+                    Logger?.Error(e, $"Unable to perform{(packageUpgrade ? " package" : " application")} upgrade of package to version {upgrade.Version}.");
                     return new PackageOpenResult(PackageOpenResultType.UpgradeFailure, e);
                 }
 
@@ -1195,7 +1193,7 @@ namespace DtronixPackage
         /// </summary>
         protected void DataModified()
         {
-            Logger.ConditionalTrace("DataModified()");
+            Logger?.ConditionalTrace("DataModified()");
             IsDataModified = true;
         }
         

@@ -9,15 +9,15 @@ Logo is licensed under the [Creative Commons Attribution 3.0 License](http://cre
 #### Features
 - Simple structure utilizing zip files for content management.
 - Data compression via the Deflate compression method.
-- Lock file management to enable networked usage of save files and notification locked files.
-- Versioning & upgrade system.
+- Lock file management to enable networked usage of save files and notification of locked files.
+- Integrated versioning & upgrade system.
 - Read only opening.
 - Save content management and modification notification.
-  - Writing & Reading of JSON, String, Stream data.
+  - Writing & Reading of JSON, String & Stream data.
 - Auto-Save methods to allow for background saving for crash recovery.
 - Backup save system.
+- No dependencies.
 - Uses new performant System.Text.Json classes.
-- Single NLog dependency
 - File management view model for easy integration into WPF applications.
 
 #### Building

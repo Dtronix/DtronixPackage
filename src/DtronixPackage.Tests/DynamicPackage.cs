@@ -34,6 +34,7 @@ namespace DtronixPackage.Tests
             : base(appName, appVersion, preserveUpgrade, useLockFile)
         {
             _integrationTest = integrationTest;
+            Logger = new NLogLogger(nameof(DynamicPackage));
         }
 
         protected override async Task<bool> OnOpen(bool isUpgrade)
