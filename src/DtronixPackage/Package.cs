@@ -611,7 +611,7 @@ namespace DtronixPackage
                         }
                     }
 
-                    var upgradeResult = await ApplyUpgrades(Upgrades, true, Version);
+                    var upgradeResult = await ApplyUpgrades(Upgrades, false, Version);
 
                     // If the result is not null, the upgrade failed.
                     if(upgradeResult != null)
@@ -1096,6 +1096,8 @@ namespace DtronixPackage
             bool packageUpgrade, 
             Version compareVersion)
         {
+            var currentVersion = packageUpgrade ? _openPackageVersion : Version;
+
             foreach (var upgrade in upgrades.Where(upgrade => upgrade.Version > compareVersion))
             {
                 try
@@ -1113,9 +1115,11 @@ namespace DtronixPackage
                         : ChangelogItemType.ApplicationUpgrade)
                     {
                         Note = packageUpgrade 
-                            ? $"Package upgrade from {_openPackageVersion} to {PackageVersion}"
-                            : $"Application upgrade from {Version} to {_appVersion}"
+                            ? $"Package upgrade from {currentVersion} to {upgrade.Version}"
+                            : $"Application upgrade from {currentVersion} to {upgrade.Version}"
                     });
+
+                    currentVersion = upgrade.Version;
                 }
                 catch (Exception e)
                 {
