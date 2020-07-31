@@ -15,10 +15,26 @@ namespace DtronixPackage.Tests.PackageManagerViewModelTests
 
         public Func<PackageManagerViewModelPackage, Task> PackageSaving;
 
+        public TaskCompletionSource<bool> SaveAsComplete;
+        public TaskCompletionSource<bool> SaveComplete;
+        public TaskCompletionSource<bool> OpenComplete;
+        public TaskCompletionSource<bool> NewComplete;
+        public TaskCompletionSource<bool> CloseComplete;
+
+        public void ResetCompleteTasks()
+        {
+            SaveAsComplete = new TaskCompletionSource<bool>();
+            SaveComplete = new TaskCompletionSource<bool>();
+            OpenComplete = new TaskCompletionSource<bool>();
+            NewComplete = new TaskCompletionSource<bool>();
+            CloseComplete = new TaskCompletionSource<bool>();
+        }
+
         public TestPackageManagerViewModel()
             : base("DtronixPackage.Tests")
         {
             Created += OnCreated;
+            ResetCompleteTasks();
         }
 
         private void OnCreated(object? sender, PackageEventArgs<PackageManagerViewModelPackage> e)
@@ -42,6 +58,41 @@ namespace DtronixPackage.Tests.PackageManagerViewModelTests
             BrowsingSave?.Invoke(args);
             path = args.Path;
             return args.Result;
+        }
+
+        internal override async Task<bool> SaveAsInternal(PackageManagerViewModelPackage package)
+        {
+            var result = await base.SaveAsInternal(package);
+            SaveAsComplete.SetResult(result);
+            return result;
+        }
+
+        internal override async Task<bool> SaveInternal(PackageManagerViewModelPackage package)
+        {
+            var result = await base.SaveInternal(package);
+            SaveComplete.SetResult(result);
+            return result;
+        }
+
+        public override async Task<bool> Open(string path, bool forceReadOnly)
+        {
+            var result = await base.Open(path, forceReadOnly);
+            OpenComplete.SetResult(result);
+            return result;
+        }
+
+        public override async Task<bool> New()
+        {
+            var result = await base.New();
+            NewComplete.SetResult(result);
+            return result;
+        }
+
+        internal override async Task<bool> TryClose()
+        {
+            var result = await base.TryClose();
+            CloseComplete.TrySetResult(true);
+            return result;
         }
     }
 }

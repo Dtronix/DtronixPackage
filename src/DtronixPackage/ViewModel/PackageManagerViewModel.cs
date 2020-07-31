@@ -20,7 +20,7 @@ namespace DtronixPackage.ViewModel
         private string _windowTitle;
         private bool _addedModifiedText;
         
-        private Dictionary<Window, KeyBinding> _attachedBindings = new Dictionary<Window, KeyBinding>();
+        private readonly Dictionary<Window, KeyBinding> _attachedBindings = new Dictionary<Window, KeyBinding>();
         private readonly KeyBinding _saveBinding;
         private readonly KeyBinding _saveAsBinding;
         private readonly KeyBinding _openBinding;
@@ -181,20 +181,9 @@ namespace DtronixPackage.ViewModel
             if (Package == null || e.Cancel)
                 return;
 
-            // See if there are changes which need to be saved.
-            if (Package.IsDataModified)
-            {
-                var askSaveResult = await AskSave();
-
-                // If they said anything but yes or no, then cancel the closing
-                if (askSaveResult != MessageBoxResult.Yes && askSaveResult != MessageBoxResult.No)
-                {
-                    e.Cancel = true;
-                    return;
-                }
-            }
-
-            Close();
+            // Attempt to close if any package is open.
+            if (!await TryClose())
+                e.Cancel = true;
         }
 
         protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
@@ -205,86 +194,111 @@ namespace DtronixPackage.ViewModel
         /// <summary>
         /// Implements the execution of <see cref="SaveCommand" />
         /// </summary>
-        private async void SaveCommand_Execute()
+        private void SaveCommand_Execute()
         {
-            await Save();
+            _ = Save();
         }
 
         /// <summary>
         /// Implements the execution of <see cref="SaveAsCommand" />
         /// </summary>
-        private async void SaveAsCommand_Execute()
+        private void SaveAsCommand_Execute()
         {
-            await SaveAs();
+            _ = SaveAs();
         }
 
-        private async void NewCommand_Execute()
+        /// <summary>
+        /// Implements the execution of <see cref="NewCommand" />
+        /// </summary>
+        private void NewCommand_Execute()
         {
-            if (Package?.IsDataModified == true)
-            {
-                if (await AskSave() != MessageBoxResult.Yes)
-                    return;
-            }
-
-            var file = new TPackage();
-
-            Created?.Invoke(this, new PackageEventArgs<TPackage>(file));
-
-            Package = file;
-
-            // If we can not save upon creating the file, don't do anything.
-            if (!await Save())
-            {
-                Package = null;
-            }
-
-            StatusChange();
+            _ = New();
         }
 
-        private async void OpenCommand_Execute()
+        /// <summary>
+        /// Implements the execution of <see cref="OpenCommand" />
+        /// </summary>
+        private void OpenCommand_Execute()
         {
-            var result = BrowseOpenFile(out var path, out var readOnly);
-
-            if (result != true)
-                return;
-
-            await Open(path, readOnly);
+            _ = Open();
         }
 
         /// <summary>
         /// Implements the execution of <see cref="CloseCommand" />
         /// </summary>
-        private async void CloseCommand_Execute()
+        private void CloseCommand_Execute()
         {
-            if (Package?.IsDataModified == true)
-            {
-                if (await AskSave() == MessageBoxResult.Cancel)
-                    return;
-            }
-
-            Close();
-
+            _ = TryClose();
         }
 
-        private void Close()
+        /// <summary>
+        /// Attempts to close the currently open package.
+        /// If there are modifications, it prompts for confirmation about saving.
+        /// </summary>
+        /// <returns>
+        /// True if close has succeeded closing or the there is no package open.
+        /// False if the user has provided input to stop the closing process.
+        /// </returns>
+        internal virtual async Task<bool> TryClose()
         {
-            Package?.Close();
-            Package = null;
-            Closed?.Invoke(this, EventArgs.Empty);
+            if (Package == null) 
+                return true;
 
-            StatusChange();
-        }
-
-        public async Task<bool> Open(string path, bool forceReadOnly)
-        {
-            // If there is already a file open, ask if you want to save the changes before opening another one.
-            if (Package != null)
+            if (Package.IsDataModified)
             {
                 if (await AskSave() == MessageBoxResult.Cancel)
                     return false;
-
-                Close();
             }
+
+            Package.Close();
+            Package = null;
+            Closed?.Invoke(this, EventArgs.Empty);
+            StatusChange();
+
+            return true;
+        }
+
+        public virtual async Task<bool> New()
+        {
+
+            // Attempt to close if any package is open.
+            if (!await TryClose())
+                return false;
+
+            var file = new TPackage();
+
+            Created?.Invoke(this, new PackageEventArgs<TPackage>(file));
+
+            var saveResult = await SaveInternal(file);
+
+            // If we have saved, set the Package property.
+            if (saveResult)
+                Package = file;
+            
+            StatusChange();
+
+            return saveResult;
+        }
+
+        public virtual async Task<bool> Open()
+        {
+            if (!await TryClose())
+                return false;
+
+            var result = BrowseOpenFile(out var path, out var readOnly);
+
+            if (result != true)
+                return false;
+
+            return await Open(path, readOnly);
+        }
+
+        public virtual async Task<bool> Open(string path, bool forceReadOnly)
+        {
+            // If there is already a file open, ask if you want to save the changes before opening another one.
+            // Only applies if there are changes made to the file.
+            if (!await TryClose())
+                return false;
 
             var openFile = new TPackage();
             var result = await openFile.Open(path, forceReadOnly);
@@ -349,29 +363,34 @@ namespace DtronixPackage.ViewModel
             return message.Result;
         }
 
-        public async Task<bool> Save()
+        internal virtual async Task<bool> SaveInternal(TPackage package)
         {
-            if (Package == null)
+            if (package == null)
                 return false;
 
             // File is not saved and Read-only considerations.
-            if (string.IsNullOrEmpty(Package.SavePath)
-                && !System.IO.File.Exists(Package.SavePath) || Package.IsReadOnly)
+            if (string.IsNullOrEmpty(package.SavePath)
+                && !System.IO.File.Exists(package.SavePath) || package.IsReadOnly)
             {
-                return await SaveAs();
+                return await SaveAsInternal(package);
             }
 
-            var result = await Package.Save(Package.SavePath);
+            var result = await package.Save(package.SavePath);
             StatusChange();
             
             return result == PackageSaveResult.Success;
         }
 
-        public async Task<bool> SaveAs()
+        public Task<bool> Save()
+        {
+            return SaveInternal(Package);
+        }
+
+        internal virtual async Task<bool> SaveAsInternal(TPackage package)
         {
             if (BrowseSaveFile(out var path))
             {
-                var result = await Package.Save(path);
+                var result = await package.Save(path);
 
                 switch (result.SaveResult)
                 {
@@ -381,7 +400,7 @@ namespace DtronixPackage.ViewModel
                             "Selected file is locked by another application.  Please select another location.",
                             "Saving Error",
                             MessageBoxImage.Error));
-                        return await SaveAs();
+                        return await SaveAsInternal(package);
 
                     case PackageSaveResultType.Failure:
                         ShowMessage?.Invoke(this, new PackageMessageEventArgs(
@@ -389,7 +408,7 @@ namespace DtronixPackage.ViewModel
                             "File could not be saved at specified location.  Please select another location.",
                             "Saving Error",
                             MessageBoxImage.Error));
-                        return await SaveAs();
+                        return await SaveAsInternal(package);
                 }
 
                 StatusChange();
@@ -398,6 +417,11 @@ namespace DtronixPackage.ViewModel
 
             StatusChange();
             return false;
+        }
+
+        public Task<bool> SaveAs()
+        {
+            return SaveAsInternal(Package);
         }
 
         private void InvokeOnDispatcher(Action action)

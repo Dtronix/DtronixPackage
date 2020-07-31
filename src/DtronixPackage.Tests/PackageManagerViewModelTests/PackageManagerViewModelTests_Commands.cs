@@ -2,6 +2,7 @@
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows;
 using DtronixPackage.ViewModel;
 using NUnit.Framework;
 
@@ -11,37 +12,37 @@ namespace DtronixPackage.Tests.PackageManagerViewModelTests
     {
 
         [Test]
-        public void PackageIsNotOpen_CanNotClose()
+        public void PackageNotOpen_CanNotClose()
         {
             Assert.IsFalse(ViewModel.CloseCommand.CanExecute(null));
         }
 
         [Test]
-        public void PackageIsNotOpen_CanNotSaveAs()
+        public void PackageNotOpen_CanNotSaveAs()
         {
             Assert.IsFalse(ViewModel.SaveAsCommand.CanExecute(null));
         }
 
         [Test]
-        public void PackageIsNotOpen_CanNotSave()
+        public void PackageNotOpen_CanNotSave()
         {
             Assert.IsFalse(ViewModel.SaveCommand.CanExecute(null));
         }
 
         [Test]
-        public void PackageIsNotOpen_CanOpen()
+        public void PackageNotOpen_CanOpen()
         {
             Assert.IsTrue(ViewModel.OpenCommand.CanExecute(null));
         }
 
         [Test]
-        public void PackageIsNotOpen_CanNew()
+        public void PackageNotOpen_CanNew()
         {
             Assert.IsTrue(ViewModel.NewCommand.CanExecute(null));
         }
 
         [Test]
-        public void PackageIsNotOpen_NewRequestsSaveDestination()
+        public void PackageNotOpen_NewRequestsSaveDestination()
         {
 
             ViewModel.BrowsingSave = args => TestCompleted.Set();
@@ -52,7 +53,7 @@ namespace DtronixPackage.Tests.PackageManagerViewModelTests
         }
 
         [Test]
-        public async Task PackageIsNotOpen_NewCreatesFile()
+        public async Task PackageNotOpen_NewCreatesFile()
         {
             ViewModel.NewCommand.Execute(null);
 
@@ -60,7 +61,7 @@ namespace DtronixPackage.Tests.PackageManagerViewModelTests
         }   
         
         [Test]
-        public async Task PackageIsNotOpen_NewLocksFile()
+        public async Task PackageNotOpen_NewLocksFile()
         {
             ViewModel.NewCommand.Execute(null);
             await Utilities.AssertFileExistWithin(PackageFilename);
@@ -68,32 +69,55 @@ namespace DtronixPackage.Tests.PackageManagerViewModelTests
         }
 
         [Test]
-        public async Task NewPackageOpen_Closes()
+        public async Task PackageNotOpen_NewFailsOFailsOnSaveCancel()
         {
+            ViewModel.BrowsingSave = args => args.Result = false;
             ViewModel.NewCommand.Execute(null);
-            await Utilities.AssertFileExistWithin(PackageFilename);
-            ViewModel.CloseCommand.Execute(null);
-            File.Delete(PackageFilename);
+            Assert.IsFalse(await ViewModel.NewComplete.Task.Timeout(1000));
         }
 
         [Test]
-        public void PackageOpen_CanClose()
+        public async Task PackageNotOpen_NewSetsPackageProperty()
         {
             ViewModel.NewCommand.Execute(null);
+            Assert.IsTrue(await ViewModel.NewComplete.Task.Timeout(1000));
+            Assert.IsNotNull(ViewModel.Package);
+        }
+
+        [Test]
+        public async Task NewPackageOpen_Closes()
+        {
+            ViewModel.NewCommand.Execute(null);
+            Assert.IsTrue(await ViewModel.NewComplete.Task.Timeout(1000));
+            ViewModel.CloseCommand.Execute(null);
+
+            await ViewModel.CloseComplete.Task.Timeout(1000);
+            Assert.IsTrue(File.Exists(PackageFilename));
+            File.Delete(PackageFilename);
+            Assert.IsNull(ViewModel.Package);
+        }
+
+        [Test]
+        public async Task PackageOpen_CanClose()
+        {
+            ViewModel.NewCommand.Execute(null);
+            await ViewModel.NewComplete.Task.Timeout(1000);
             Assert.IsTrue(ViewModel.CloseCommand.CanExecute(null));
         }     
         
         [Test]
-        public void PackageOpen_CanSave()
+        public async Task PackageOpen_CanSave()
         {
             ViewModel.NewCommand.Execute(null);
+            await ViewModel.NewComplete.Task.Timeout(1000);
             Assert.IsTrue(ViewModel.SaveCommand.CanExecute(null));
         }     
         
         [Test]
-        public void PackageOpen_CanSaveAs()
+        public async Task PackageOpen_CanSaveAs()
         {
             ViewModel.NewCommand.Execute(null);
+            await ViewModel.NewComplete.Task.Timeout(1000);
             Assert.IsTrue(ViewModel.SaveAsCommand.CanExecute(null));
         }
 
@@ -111,25 +135,78 @@ namespace DtronixPackage.Tests.PackageManagerViewModelTests
             Assert.IsTrue(ViewModel.NewCommand.CanExecute(null));
         }
 
-        [Test]
-        public void PackageOpen_OpenAsksToSave()
+        
+        public async Task<bool> PackageOpenAsksToSaveWith(Func<Task> action)
         {
             var success = false;
-
-            void OnViewModelOnShowMessage(object? sender, PackageMessageEventArgs args)
+            void OnViewModelOnShowMessage(object sender, PackageMessageEventArgs args)
             {
                 success = args.Type == PackageMessageEventArgs.MessageType.YesNoCancel;
                 ViewModel.ShowMessage -= OnViewModelOnShowMessage;
-                TestCompleted.Set();
             }
 
             ViewModel.ShowMessage += OnViewModelOnShowMessage;
             ViewModel.NewCommand.Execute(null);
-            ViewModel.OpenCommand.Execute(null);
-            WaitForCompletion();
+            await ViewModel.NewComplete.Task.Timeout(1000);
 
-            Assert.IsTrue(success);
+            await action();
+
+            return success;
         }
+
+        [Test]
+        public async Task PackageOpen_OpenAsksToSave()
+        {
+            var result = await PackageOpenAsksToSaveWith(async () =>
+            {
+                ViewModel.Package.ContentModifiedOverride();
+                ViewModel.OpenCommand.Execute(null);
+
+                await ViewModel.OpenComplete.Task.Timeout(1000);
+            });
+
+            Assert.IsTrue(result);
+
+        }
+
+        [Test]
+        public async Task PackageOpen_CloseAsksToSave()
+        {
+            var result = await PackageOpenAsksToSaveWith(async () =>
+            {
+                ViewModel.Package.ContentModifiedOverride();
+                ViewModel.CloseCommand.Execute(null);
+                await ViewModel.CloseComplete.Task.Timeout(1000);
+            });
+
+            Assert.IsTrue(result);
+        }
+
+        [Test]
+        public async Task PackageOpen_OpenDoesNotAskToSave()
+        {
+            var result = await PackageOpenAsksToSaveWith(async () =>
+            {
+                ViewModel.OpenCommand.Execute(null);
+                await ViewModel.OpenComplete.Task.Timeout(1000);
+            });
+
+            Assert.IsFalse(result);
+
+        }
+
+        [Test]
+        public async Task PackageOpen_CloseDoesNotAskToSave()
+        {
+            var result = await PackageOpenAsksToSaveWith(async () =>
+            {
+                ViewModel.CloseCommand.Execute(null);
+                await ViewModel.CloseComplete.Task.Timeout(1000);
+            });
+
+            Assert.IsFalse(result);
+        }
+
 
     }
 }
