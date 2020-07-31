@@ -14,24 +14,7 @@ namespace DtronixPackage.Tests.UpgradeTests
     [SuppressMessage("ReSharper", "InconsistentNaming")]
     public class PackageTests_Upgrade_1_1_0 : UpgradeTestBase<PackageUpgrade_1_1_0>
     {
-
-        [SuppressMessage("ReSharper", "MemberCanBePrivate.Local")]
-        private class SaveLogEntry
-        {
-            public string Username { get; }
-            public string ComputerName { get; }
-            public DateTimeOffset Time { get; }
-            public bool? AutoSave { get; }
-
-            public SaveLogEntry(string username, string computerName, DateTime time, bool? autoSave)
-            {
-                Username = username;
-                ComputerName = computerName;
-                Time = time;
-                AutoSave = autoSave;
-            }
-        }
-
+        
         protected override async Task<ZipArchive> CreatePackage()
         {
             return await PackageBuilder.CreateZipArchive(new (string Path, object Data)[]
@@ -39,14 +22,22 @@ namespace DtronixPackage.Tests.UpgradeTests
                 ("file_version", "0.1.0"),
                 ("UpgradeTest/save_log.json", new[]
                 {
-                    new SaveLogEntry("TestUser1", "GeneralComputer1", DateTime.Now, null),
-                    new SaveLogEntry("TestUser2", "GeneralComputer2", DateTime.Now.AddDays(1), false),
-                    new SaveLogEntry("TestUser3", "GeneralComputer3", DateTime.Now.AddDays(2), true)
+                    new PackageUpgrade_1_1_0.SaveLogEntry("TestUser1", "GeneralComputer1", DateTime.Now, null),
+                    new PackageUpgrade_1_1_0.SaveLogEntry("TestUser2", "GeneralComputer2", DateTime.Now.AddDays(1), false),
+                    new PackageUpgrade_1_1_0.SaveLogEntry("TestUser3", "GeneralComputer3", DateTime.Now.AddDays(2), true)
                 }),
                 ("UpgradeTest-backup-0.1/save_log.json", new[]
                 {
-                    new SaveLogEntry("TestUser1", "GeneralComputer1", DateTime.Now, null),
+                    new PackageUpgrade_1_1_0.SaveLogEntry("TestUser1", "GeneralComputer1", DateTime.Now, null),
                 })
+            });
+        }
+
+        private async Task<ZipArchive> CreatePackageLessSaveLog()
+        {
+            return await PackageBuilder.CreateZipArchive(new (string Path, object Data)[]
+            {
+                ("file_version", "0.1.0")
             });
         }
 
@@ -54,6 +45,14 @@ namespace DtronixPackage.Tests.UpgradeTests
         public async Task UpgradeSucceeds()
         {
             Package = await CreatePackage();
+            UpgradeClass = new PackageUpgrade_1_1_0();
+            Assert.IsTrue(await UpgradeClass.Upgrade(Package));
+        }
+
+        [Test]
+        public async Task UpgradeSucceedsWithMissingSaveLog()
+        {
+            Package = await CreatePackageLessSaveLog();
             UpgradeClass = new PackageUpgrade_1_1_0();
             Assert.IsTrue(await UpgradeClass.Upgrade(Package));
         }
@@ -70,22 +69,19 @@ namespace DtronixPackage.Tests.UpgradeTests
         {
             var changelogJson = Package.Entries.First(e => e.FullName == "UpgradeTest/changelog.json");
             await using var stream = changelogJson.Open();
-            var sr = new StreamReader(stream);
-            var src = sr.ReadToEnd();
-            stream.Position = 0;
-            var changelogEntries = await JsonSerializer.DeserializeAsync<ChangelogEntry[]>(stream);
+            var changelogEntries = await JsonSerializer.DeserializeAsync<PackageUpgrade_1_1_0.ChangelogEntry[]>(stream);
 
             Assert.AreEqual("TestUser1", changelogEntries[0].Username);
             Assert.AreEqual("GeneralComputer1", changelogEntries[0].ComputerName);
-            Assert.AreEqual(ChangelogItemType.Save, changelogEntries[0].Type);
+            Assert.AreEqual(PackageUpgrade_1_1_0.ChangelogItemType.Save, changelogEntries[0].Type);
 
             Assert.AreEqual("TestUser2", changelogEntries[1].Username);
             Assert.AreEqual("GeneralComputer2", changelogEntries[1].ComputerName);
-            Assert.AreEqual(ChangelogItemType.Save, changelogEntries[1].Type);
+            Assert.AreEqual(PackageUpgrade_1_1_0.ChangelogItemType.Save, changelogEntries[1].Type);
 
             Assert.AreEqual("TestUser3", changelogEntries[2].Username);
             Assert.AreEqual("GeneralComputer3", changelogEntries[2].ComputerName);
-            Assert.AreEqual(ChangelogItemType.AutoSave, changelogEntries[2].Type);
+            Assert.AreEqual(PackageUpgrade_1_1_0.ChangelogItemType.AutoSave, changelogEntries[2].Type);
         }
 
         [Test]

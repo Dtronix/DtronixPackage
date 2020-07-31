@@ -18,11 +18,42 @@ namespace DtronixPackage.Upgrades
     [SuppressMessage("ReSharper", "ClassNeverInstantiated.Local")]
     public class PackageUpgrade_1_1_0 : PackageUpgrade
     {
-        private class SaveLogEntry {
+        internal class SaveLogEntry {
             public string Username { get; set; } 
             public string ComputerName { get; set; } 
             public DateTime Time { get; set; } 
             public bool? AutoSave { get; set; }
+
+            public SaveLogEntry(string username, string computerName, DateTime time, bool? autoSave)
+            {
+                Username = username;
+                ComputerName = computerName;
+                Time = time;
+                AutoSave = autoSave;
+            }
+
+            public SaveLogEntry()
+            {
+                
+            }
+        }
+
+        internal class ChangelogEntry
+        {
+            public ChangelogItemType Type { get; set; }
+            public string Username { get; set; }
+            public string ComputerName { get; set; }
+            public DateTimeOffset Time { get; set; }
+            public string Note { get; set; }
+        }
+
+        internal enum ChangelogItemType
+        {
+            Unset = 0,
+            PackageUpgrade = 1,
+            ApplicationUpgrade = 2,
+            Save = 3,
+            AutoSave = 4
         }
 
         public PackageUpgrade_1_1_0() : base(new Version(1, 1, 0))
