@@ -58,7 +58,7 @@ namespace DtronixPackage.Tests.IntegrationTests
             // Open, save & close the file.
             var file = new DynamicPackage(new Version(1, 0), this, false, true);
             await file.Save(PackageFilename);
-            AssertFileIsReadOnly(PackageFilename + ".lock");
+            Utilities.AssertFileIsReadOnly(PackageFilename + ".lock");
 
             file.Close();
         }
@@ -70,7 +70,7 @@ namespace DtronixPackage.Tests.IntegrationTests
             var file = new DynamicPackage(new Version(1,0), this, false, false);
 
             await file.Save(PackageFilename);
-            AssertFileIsReadOnly(PackageFilename);
+            Utilities.AssertFileIsReadOnly(PackageFilename);
 
             file.Close();
         }
@@ -92,10 +92,10 @@ namespace DtronixPackage.Tests.IntegrationTests
             file.Data.Children.Add(new PackageDataContractChild());
             await file.Save(PackageFilename);
 
-            await AssertFileExistWithin(PackageFilename);
+            await Utilities.AssertFileExistWithin(PackageFilename);
             var secondPath = Path.Combine("saves/", Guid.NewGuid() + ".file");
             await file.Save(secondPath);
-            await AssertFileExistWithin(secondPath);
+            await Utilities.AssertFileExistWithin(secondPath);
         }
 
         [Test]

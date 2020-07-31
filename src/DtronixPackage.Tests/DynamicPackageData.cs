@@ -1,5 +1,6 @@
 ﻿using System;
 using System.ComponentModel;
+using DtronixPackage.Tests.IntegrationTests;
 
 namespace DtronixPackage.Tests
 {

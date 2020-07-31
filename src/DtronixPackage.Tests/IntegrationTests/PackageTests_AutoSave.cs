@@ -19,7 +19,7 @@ namespace DtronixPackage.Tests.IntegrationTests
             file.ContentModifiedOverride();
             await file.ConfigureAutoSave(0, -1);
 
-            await AssertFileExistWithin(tempSave);
+            await Utilities.AssertFileExistWithin(tempSave);
         }
 
 
@@ -36,7 +36,7 @@ namespace DtronixPackage.Tests.IntegrationTests
             await file.Save(PackageFilename);
             await file.ConfigureAutoSave(0, -1);
 
-            await AssertFileDoesNotExistWithin(tempSave);
+            await Utilities.AssertFileDoesNotExistWithin(tempSave);
         }
 
         [Test]
@@ -48,12 +48,12 @@ namespace DtronixPackage.Tests.IntegrationTests
                 TempPackagePathRequest = () => tempSave
             };
             await file.ConfigureAutoSave(0, -1);
-            await AssertFileDoesNotExistWithin(tempSave);
+            await Utilities.AssertFileDoesNotExistWithin(tempSave);
 
             file.AutoSaveEnabled = false;
             file.ContentModifiedOverride();
             file.AutoSaveEnabled = true;
-            await AssertFileExistWithin(tempSave);
+            await Utilities.AssertFileExistWithin(tempSave);
         }
 
         
@@ -69,7 +69,7 @@ namespace DtronixPackage.Tests.IntegrationTests
 
             await file.ConfigureAutoSave(0, -1);
 
-            await AssertFileExistWithin(tempSave);
+            await Utilities.AssertFileExistWithin(tempSave);
             Assert.IsFalse(file.IsDataModifiedSinceAutoSave);
         }
 
@@ -96,7 +96,7 @@ namespace DtronixPackage.Tests.IntegrationTests
             };
             file.ContentModifiedOverride();
             await file.ConfigureAutoSave(0, -1);
-            await AssertFileExistWithin(tempSave);
+            await Utilities.AssertFileExistWithin(tempSave);
 
             Assert.IsTrue(file.IsDataModified);
         }
@@ -113,7 +113,7 @@ namespace DtronixPackage.Tests.IntegrationTests
             // Autosave once.
             file.ContentModifiedOverride();
             await file.ConfigureAutoSave(0, 100);
-            await AssertFileExistWithin(tempSave);
+            await Utilities.AssertFileExistWithin(tempSave);
 
             var initialWriteTime = new FileInfo(tempSave).LastWriteTime;
 
@@ -147,7 +147,7 @@ namespace DtronixPackage.Tests.IntegrationTests
             // Autosave once.
             file.ContentModifiedOverride();
             await file.ConfigureAutoSave(0, 10);
-            await AssertFileExistWithin(tempSave);
+            await Utilities.AssertFileExistWithin(tempSave);
 
             Logger.Trace("Deleting {0}", tempSave);
             // Remove the file
@@ -156,7 +156,7 @@ namespace DtronixPackage.Tests.IntegrationTests
 
             // Attempt to autosave again.
             file.ContentModifiedOverride();
-            await AssertFileExistWithin(tempSave);
+            await Utilities.AssertFileExistWithin(tempSave);
 
             await file.ConfigureAutoSave(-1, -1);
         }

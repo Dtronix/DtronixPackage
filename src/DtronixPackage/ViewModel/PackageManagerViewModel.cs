@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Threading;
 using Microsoft.Win32;
 
 namespace DtronixPackage.ViewModel
@@ -24,6 +25,8 @@ namespace DtronixPackage.ViewModel
         private readonly KeyBinding _saveAsBinding;
         private readonly KeyBinding _openBinding;
         private readonly KeyBinding _newBinding;
+
+        private Dispatcher _appDispatcher;
 
         /// <summary>
         /// The currently managed file by the Manager.
@@ -105,6 +108,9 @@ namespace DtronixPackage.ViewModel
 
             _openBinding = new KeyBinding(OpenCommand, new KeyGesture(Key.O, ModifierKeys.Control));
             _newBinding = new KeyBinding(NewCommand, new KeyGesture(Key.N, ModifierKeys.Control));
+
+            // Get the current dispatcher.  Can be null.
+            _appDispatcher = Application.Current?.Dispatcher;
         }
 
 
@@ -394,10 +400,21 @@ namespace DtronixPackage.ViewModel
             return false;
         }
 
+        private void InvokeOnDispatcher(Action action)
+        {
+            if (_appDispatcher == null)
+            {
+                action?.Invoke();
+                return;
+            }
+
+            _appDispatcher.Invoke(action);
+        }
+
         private void StatusChange()
         {
             _addedModifiedText = false;
-            Application.Current.Dispatcher.Invoke(() =>
+            InvokeOnDispatcher(() =>
             {
                 if (Package == null)
                 {
@@ -422,7 +439,7 @@ namespace DtronixPackage.ViewModel
 
         private void PackageOnMonitoredChanged(object sender, EventArgs e)
         {
-            Application.Current.Dispatcher.Invoke(() => {          
+            InvokeOnDispatcher(() => {          
                 // Change the save state to ensure we only save when there are changes.  Leave SaveAs alone.
                 _saveActionCommand.SetCanExecute(Package?.IsDataModified == true);
             });
@@ -431,7 +448,7 @@ namespace DtronixPackage.ViewModel
                 return;
 
             _addedModifiedText = true;
-            Application.Current.Dispatcher.Invoke(() =>
+            InvokeOnDispatcher(() =>
             {
                 WindowTitle += " (Modified)"; 
 

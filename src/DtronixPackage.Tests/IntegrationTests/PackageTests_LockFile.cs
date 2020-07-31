@@ -13,7 +13,7 @@ namespace DtronixPackage.Tests.IntegrationTests
             // Open, save & close the file.
             var file = new DynamicPackage(new Version(1,0), this, false, true);
             await file.Save(PackageFilename);
-            await AssertFileExistWithin(file.SavePath + ".lock");
+            await Utilities.AssertFileExistWithin(file.SavePath + ".lock");
         }
 
         [Test]
@@ -23,7 +23,7 @@ namespace DtronixPackage.Tests.IntegrationTests
             var file = new DynamicPackage(new Version(1,0), this, false, true);
             await file.Save(PackageFilename);
             file.Close();
-            await AssertFileDoesNotExistWithin(file.SavePath + ".lock");
+            await Utilities.AssertFileDoesNotExistWithin(file.SavePath + ".lock");
         }
 
         
@@ -33,7 +33,7 @@ namespace DtronixPackage.Tests.IntegrationTests
             // Open, save & close the file.
             var file = new DynamicPackage(new Version(1,0), this, false, false);
             await file.Save(PackageFilename);
-            await AssertFileDoesNotExistWithin(file.SavePath + ".lock");
+            await Utilities.AssertFileDoesNotExistWithin(file.SavePath + ".lock");
             file.Close();
         }
 
@@ -43,11 +43,11 @@ namespace DtronixPackage.Tests.IntegrationTests
             // Open, save & close the file.
             var file = new DynamicPackage(new Version(1,0), this, false, true);
             await file.Save(PackageFilename);
-            await AssertFileExistWithin(PackageFilename + ".lock");
+            await Utilities.AssertFileExistWithin(PackageFilename + ".lock");
             var secondPath = Path.Combine("saves/", Guid.NewGuid() + ".file");
             await file.Save(secondPath);
-            await AssertFileDoesNotExistWithin(PackageFilename + ".lock");
-            await AssertFileExistWithin(secondPath + ".lock");
+            await Utilities.AssertFileDoesNotExistWithin(PackageFilename + ".lock");
+            await Utilities.AssertFileExistWithin(secondPath + ".lock");
         }
     }
 }
