@@ -10,6 +10,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Media.Imaging;
+using DtronixPackage.Logging;
 using DtronixPackage.RecursiveChangeNotifier;
 using DtronixPackage.Upgrades;
 

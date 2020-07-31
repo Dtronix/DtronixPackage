@@ -1,4 +1,4 @@
-﻿namespace DtronixPackage
+﻿namespace DtronixPackage.ViewModel
 {
     public enum FileManagerInputBindings {
         Unset,

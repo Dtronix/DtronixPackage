@@ -1,6 +1,6 @@
 ﻿using System.Windows.Input;
 
-namespace DtronixPackage
+namespace DtronixPackage.ViewModel
 {
     public interface IActionCommand : ICommand
     {

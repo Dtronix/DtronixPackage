@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace DtronixPackage
+namespace DtronixPackage.ViewModel
 {
     public class PackageEventArgs<T> : EventArgs
     {

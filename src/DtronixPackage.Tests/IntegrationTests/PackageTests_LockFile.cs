@@ -38,7 +38,7 @@ namespace DtronixPackage.Tests.IntegrationTests
         }
 
         [Test]
-        public async Task RemovesLockFileAfterChangeInSaveFile()
+        public async Task RemovesLockFileAfterChangeInSaveDestination()
         {
             // Open, save & close the file.
             var file = new DynamicPackage(new Version(1,0), this, false, true);

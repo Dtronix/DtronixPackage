@@ -7,14 +7,13 @@ using System.Windows;
 using System.Windows.Input;
 using Microsoft.Win32;
 
-namespace DtronixPackage
+namespace DtronixPackage.ViewModel
 {
     public abstract class PackageManagerViewModel<TPackage, TPackageContent> : INotifyPropertyChanged
         where TPackage : Package<TPackageContent>, new()
         where TPackageContent : PackageContent, new()
     {
         private readonly string _appName;
-        private readonly Version _appVersion;
         public event PropertyChangedEventHandler PropertyChanged;
         private TPackage _package;
         private string _windowTitle;
@@ -70,9 +69,6 @@ namespace DtronixPackage
         public IActionCommand CloseCommand { get; }
         public IActionCommand NewCommand { get; }
 
-        public abstract string FileFilter { get; }
-        public abstract string DefaulPackageName { get; }
-
         public string WindowTitle
         {
             get => _windowTitle;
@@ -85,10 +81,9 @@ namespace DtronixPackage
 
         public bool IsReadOnly => Package?.IsReadOnly == true;
 
-        protected PackageManagerViewModel(string appName, Version appVersion)
+        protected PackageManagerViewModel(string appName)
         {
             _appName = appName;
-            _appVersion = appVersion;
             WindowTitle = appName;
             SaveCommand =_saveActionCommand 
                 = new ActionCommand(SaveCommand_Execute, false, new KeyGesture(Key.S, ModifierKeys.Control));
@@ -111,6 +106,24 @@ namespace DtronixPackage
             _openBinding = new KeyBinding(OpenCommand, new KeyGesture(Key.O, ModifierKeys.Control));
             _newBinding = new KeyBinding(NewCommand, new KeyGesture(Key.N, ModifierKeys.Control));
         }
+
+
+        /// <summary>
+        /// Called when browsing for a package to open.  Normally paired with OpenFileDialog
+        /// </summary>
+        /// <remarks>Normally paired with SaveFileDialog</remarks>
+        /// <param name="path">Path of the package to open.  Must exist.</param>
+        /// <param name="openReadOnly">Set to true to open the package in a read-only state; False to open normally.</param>
+        /// <returns>True on successful opening of package. False to cancel the opening process.</returns>
+        protected abstract bool BrowseOpenFile(out string path, out bool openReadOnly);
+
+        /// <summary>
+        /// Called when browsing for destination to save a package.
+        /// </summary>
+        /// <remarks>Normally paired with SaveFileDialog</remarks>
+        /// <param name="path">Destination path for the package to save.</param>
+        /// <returns>True on successful selection of package destination. False to cancel the saving process.</returns>
+        protected abstract bool BrowseSaveFile(out string path);
 
         public void AttachInputBindings(
             UIElement uiElement, 
@@ -224,21 +237,12 @@ namespace DtronixPackage
 
         private async void OpenCommand_Execute()
         {
-            var openFile = new OpenFileDialog
-            {
-                Filter = FileFilter,
-                Title = "Open",
-                CheckPathExists = true,
-                CheckFileExists = true,
-                ShowReadOnly = true
-            };
-
-            var result = openFile.ShowDialog();
+            var result = BrowseOpenFile(out var path, out var readOnly);
 
             if (result != true)
                 return;
 
-            await Open(openFile.FileName, openFile.ReadOnlyChecked);
+            await Open(path, readOnly);
         }
 
         /// <summary>
@@ -359,17 +363,9 @@ namespace DtronixPackage
 
         public async Task<bool> SaveAs()
         {
-            var saveFile = new SaveFileDialog
+            if (BrowseSaveFile(out var path))
             {
-                Filter = FileFilter,
-                Title = "Save As",
-                CheckPathExists = true,
-                FileName = DefaulPackageName
-            };
-
-            if (saveFile.ShowDialog() == true)
-            {
-                var result = await Package.Save(saveFile.FileName);
+                var result = await Package.Save(path);
 
                 switch (result.SaveResult)
                 {

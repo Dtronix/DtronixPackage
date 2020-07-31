@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using NLog;
+using ILogger = DtronixPackage.Logging.ILogger;
 
 namespace DtronixPackage.Tests
 {

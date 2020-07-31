@@ -1,4 +1,4 @@
-﻿namespace DtronixPackage
+﻿namespace DtronixPackage.Logging
 {
     public interface ILogger
     {
