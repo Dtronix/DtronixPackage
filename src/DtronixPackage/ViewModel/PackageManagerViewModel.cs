@@ -306,11 +306,9 @@ namespace DtronixPackage.ViewModel
             // If the file is locked, give the option to open read-only.
             if (result.IsSuccessful == false)
             {
-                string readOnlyText;
-                if (result.LockInfo != null)
-                    readOnlyText = $"{path} is currently opened by {result.LockInfo.Username} on {result.LockInfo.DateOpened:F}.";
-                else
-                    readOnlyText = $"{path} Could not open the file for editing because it is in use or is read-only.";
+                var readOnlyText = result.LockInfo != null 
+                    ? $"{path} is currently opened by {result.LockInfo.Username} on {result.LockInfo.DateOpened:F}." 
+                    : $"{path} Could not open the file for editing because it is in use or is read-only.";
 
                 // Try opening read-only?
                 var message = new PackageMessageEventArgs(

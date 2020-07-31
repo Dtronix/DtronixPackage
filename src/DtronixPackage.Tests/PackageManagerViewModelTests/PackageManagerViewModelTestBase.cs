@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Threading;
+using System.Threading.Tasks;
 using NUnit.Framework;
 
 namespace DtronixPackage.Tests.PackageManagerViewModelTests
@@ -36,6 +37,12 @@ namespace DtronixPackage.Tests.PackageManagerViewModelTests
 
         }
 
+        protected async Task CreateApplicationPackage()
+        {
+            var package = new PackageManagerViewModelPackage();
+            await package.Save(PackageFilename);
+            package.Close();
+        }
 
 
         protected void WaitForCompletion(int timeout = 2000)

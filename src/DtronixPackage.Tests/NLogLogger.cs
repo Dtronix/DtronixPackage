@@ -24,6 +24,7 @@ namespace DtronixPackage.Tests
                 LogEntryEventType.Warn => LogLevel.Warn,
                 LogEntryEventType.Error => LogLevel.Error,
                 LogEntryEventType.Fatal => LogLevel.Fatal,
+                _ => throw new ArgumentOutOfRangeException()
             };
 
             if(entry.Exception != null)

@@ -155,6 +155,20 @@ namespace DtronixPackage.Tests.PackageManagerViewModelTests
         }
 
         [Test]
+        public async Task PackageOpen_NewAsksToSave()
+        {
+            var result = await PackageOpenAsksToSaveWith(async () =>
+            {
+                ViewModel.Package.ContentModifiedOverride();
+                ViewModel.NewCommand.Execute(null);
+
+                await ViewModel.NewComplete.Task.Timeout(1000);
+            });
+
+            Assert.IsTrue(result);
+        }
+
+        [Test]
         public async Task PackageOpen_OpenAsksToSave()
         {
             var result = await PackageOpenAsksToSaveWith(async () =>
@@ -166,7 +180,6 @@ namespace DtronixPackage.Tests.PackageManagerViewModelTests
             });
 
             Assert.IsTrue(result);
-
         }
 
         [Test]
@@ -183,6 +196,19 @@ namespace DtronixPackage.Tests.PackageManagerViewModelTests
         }
 
         [Test]
+        public async Task PackageOpen_NewDoesNotAskToSave()
+        {
+            var result = await PackageOpenAsksToSaveWith(async () =>
+            {
+                ViewModel.NewCommand.Execute(null);
+                await ViewModel.NewComplete.Task.Timeout(1000);
+            });
+
+            Assert.IsFalse(result);
+        }
+
+
+        [Test]
         public async Task PackageOpen_OpenDoesNotAskToSave()
         {
             var result = await PackageOpenAsksToSaveWith(async () =>
@@ -192,7 +218,6 @@ namespace DtronixPackage.Tests.PackageManagerViewModelTests
             });
 
             Assert.IsFalse(result);
-
         }
 
         [Test]

@@ -37,7 +37,7 @@ namespace DtronixPackage.Tests.PackageManagerViewModelTests
             ResetCompleteTasks();
         }
 
-        private void OnCreated(object? sender, PackageEventArgs<PackageManagerViewModelPackage> e)
+        private void OnCreated(object sender, PackageEventArgs<PackageManagerViewModelPackage> e)
         {
             e.Package.Saving = PackageSaving;
             e.Package.Opening = PackageOpening;
