@@ -35,7 +35,7 @@ namespace DtronixPackage
             if (this == Success)
                 return "Success";
 
-            return $"{Result};Exception: {Exception.Message}";
+            return $"{Result};Exception: {Exception?.Message}";
         }
     }
 }

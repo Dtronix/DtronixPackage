@@ -1,6 +1,6 @@
 ﻿namespace DtronixPackage
 {
-    public enum ChangelogItemType
+    public enum ChangelogEntryType
     {
         Unset = 0,
         PackageUpgrade = 1,

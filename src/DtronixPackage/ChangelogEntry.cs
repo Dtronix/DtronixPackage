@@ -7,7 +7,7 @@ namespace DtronixPackage
         /// <summary>
         /// Contains the type of change for this entry.
         /// </summary>
-        public ChangelogItemType Type { get; set; }
+        public ChangelogEntryType Type { get; set; }
 
         /// <summary>
         /// Username active while saving.
@@ -29,7 +29,7 @@ namespace DtronixPackage
         /// </summary>
         public string Note { get; set; }
 
-        public ChangelogEntry(ChangelogItemType type)
+        public ChangelogEntry(ChangelogEntryType type)
         {
             Type = type;
             ComputerName = Environment.MachineName;
@@ -46,13 +46,13 @@ namespace DtronixPackage
         {
             switch (Type)
             {
-                case ChangelogItemType.PackageUpgrade:
+                case ChangelogEntryType.PackageUpgrade:
                     return "PackageUpgrade: " + Note;
-                case ChangelogItemType.ApplicationUpgrade:
+                case ChangelogEntryType.ApplicationUpgrade:
                     return "ApplicationUpgrade: " + Note;
-                case ChangelogItemType.Save:
+                case ChangelogEntryType.Save:
                     return "Save: " + Time.ToString("g");
-                case ChangelogItemType.AutoSave:
+                case ChangelogEntryType.AutoSave:
                     return "AutoSave: " + Time.ToString("g");
                 default:
                     return Type.ToString();

@@ -19,7 +19,7 @@ namespace DtronixPackage.Tests
         {
             var path = Path.Combine(_basePath, Guid.NewGuid() + ".file");
             await using var fileStream = new FileStream(path, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite);
-            using var archive = CreateZipArchive(fileStream, contents);
+            using var archive = await CreateZipArchive(fileStream, contents);
 
             return path;
         }

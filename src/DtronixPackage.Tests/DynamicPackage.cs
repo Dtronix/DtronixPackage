@@ -49,11 +49,14 @@ namespace DtronixPackage.Tests
             }
             catch (Exception ex)
             {
-                _integrationTest.ThrowException = ex;
-                _integrationTest.TestComplete.Set();
+                if (_integrationTest != null)
+                {
+                    _integrationTest.ThrowException = ex;
+                    _integrationTest.TestComplete.Set();
+                }
+
+                throw;
             }
-            
-            return false;
         }
 
         protected override async Task OnSave()
@@ -65,8 +68,13 @@ namespace DtronixPackage.Tests
             }
             catch (Exception ex)
             {
-                _integrationTest.ThrowException = ex;
-                _integrationTest.TestComplete.Set();
+                if (_integrationTest != null)
+                {
+                    _integrationTest.ThrowException = ex;
+                    _integrationTest.TestComplete.Set();
+                }
+
+                throw;
             }
 
         }

@@ -832,7 +832,7 @@ namespace DtronixPackage
                     // Write package version file
                     await WriteString("version", _appVersion.ToString());
 
-                    var log = new ChangelogEntry(autoSave ? ChangelogItemType.AutoSave : ChangelogItemType.Save);
+                    var log = new ChangelogEntry(autoSave ? ChangelogEntryType.AutoSave : ChangelogEntryType.Save);
 
                     // Update the save log.
                     _changelog.Add(log);
@@ -1112,8 +1112,8 @@ namespace DtronixPackage
                     }
 
                     _changelog.Add(new ChangelogEntry(packageUpgrade
-                        ? ChangelogItemType.PackageUpgrade
-                        : ChangelogItemType.ApplicationUpgrade)
+                        ? ChangelogEntryType.PackageUpgrade
+                        : ChangelogEntryType.ApplicationUpgrade)
                     {
                         Note = packageUpgrade 
                             ? $"Package upgrade from {currentVersion} to {upgrade.Version}"
