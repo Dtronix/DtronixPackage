@@ -306,23 +306,40 @@ namespace DtronixPackage.ViewModel
             // If the file is locked, give the option to open read-only.
             if (result.IsSuccessful == false)
             {
-                var readOnlyText = result.LockInfo != null 
-                    ? $"{path} is currently opened by {result.LockInfo.Username} on {result.LockInfo.DateOpened:F}." 
-                    : $"{path} Could not open the file for editing because it is in use or is read-only.";
+                if (result.Result == PackageOpenResultType.IncompatibleVersion)
+                {
+                    // Try opening read-only?
+                    var message = new PackageMessageEventArgs(
+                        PackageMessageEventArgs.MessageType.OK,
+                        $"Can not open file.\r\n\r\nOpened file version is {result.OpenVersion} while application is version {openFile.AppVersion} ",
+                        "Version Incompatible",
+                        MessageBoxImage.Exclamation);
 
-                // Try opening read-only?
-                var message = new PackageMessageEventArgs(
-                    PackageMessageEventArgs.MessageType.YesNo,
-                    readOnlyText + "\nWould you like to open the file read-only?",
-                    "Open Confirmation",
-                    MessageBoxImage.Exclamation);
-                ShowMessage?.Invoke(this, message);
-
-                // If the user did not agree to opening read-only, there is nothing to do.
-                if (message.Result != MessageBoxResult.Yes)
+                    ShowMessage?.Invoke(this, message);
+                    
                     return false;
+                }
+                else
+                {
+                    var readOnlyText = result.LockInfo != null 
+                        ? $"{path} is currently opened by {result.LockInfo.Username} on {result.LockInfo.DateOpened:F}." 
+                        : $"{path} Could not open the file for editing because it is in use or is read-only.";
 
-                result = await openFile.Open(path, true);
+                    // Try opening read-only?
+                    var message = new PackageMessageEventArgs(
+                        PackageMessageEventArgs.MessageType.YesNo,
+                        readOnlyText + "\nWould you like to open the file read-only?",
+                        "Open Confirmation",
+                        MessageBoxImage.Exclamation);
+
+                    ShowMessage?.Invoke(this, message);
+
+                    // If the user did not agree to opening read-only, there is nothing to do.
+                    if (message.Result != MessageBoxResult.Yes)
+                        return false;
+
+                    result = await openFile.Open(path, true);
+                }
             }
 
             if (result.IsSuccessful)

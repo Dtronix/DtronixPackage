@@ -11,15 +11,30 @@ namespace DtronixPackage
         public PackageOpenResultType Result { get; }
         public Exception Exception { get; }
         public bool IsSuccessful { get; }
+        public Version OpenVersion { get; set; }
 
         public PackageOpenResult(PackageOpenResultType result)
-            : this(result, null)
+            : this(result, exception:null)
         {
         }
 
-        public PackageOpenResult(PackageOpenResultType result, Exception exception)
-            : this(result, exception, null)
+        
+        public PackageOpenResult(PackageOpenResultType result, Version openVersion)
+            : this(result, exception:null)
         {
+            OpenVersion = openVersion;
+        }
+
+
+        public PackageOpenResult(PackageOpenResultType result, Exception exception)
+            : this(result, exception, lockInfo:null)
+        {
+        }
+
+        public PackageOpenResult(PackageOpenResultType result, Exception exception, Version openVersion)
+            : this(result, exception, lockInfo:null)
+        {
+            OpenVersion = openVersion;
         }
 
         public PackageOpenResult(PackageOpenResultType result, Exception exception, FileLockContents lockInfo)

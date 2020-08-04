@@ -25,7 +25,6 @@ namespace DtronixPackage
         where TContent : PackageContent, new()
     {
         private readonly string _appName;
-        private readonly Version _appVersion;
         private readonly bool _preserveUpgrade;
         private readonly bool _useLockFile;
         private ZipArchive _openArchive;
@@ -68,9 +67,14 @@ namespace DtronixPackage
         public IReadOnlyList<ChangelogEntry> Changelog => _changelog.AsReadOnly();
         
         /// <summary>
-        /// Application version of the opened package.
+        /// Opened package application version.
         /// </summary>
         public Version Version { get; private set; }
+
+        /// <summary>
+        /// Current version of the application.
+        /// </summary>
+        public Version AppVersion { get; }
         
         /// <summary>
         /// If set to true, a ".BAK" package will be created with the previously saved package.
@@ -200,7 +204,7 @@ namespace DtronixPackage
         protected Package(string appName, Version appVersion, bool preserveUpgrade, bool useLockFile)
         {
             _appName = appName;
-            _appVersion = appVersion;
+            AppVersion = appVersion;
             _preserveUpgrade = preserveUpgrade;
             _useLockFile = useLockFile;
 
@@ -550,12 +554,12 @@ namespace DtronixPackage
                     }
 
                     // Don't allow opening of newer packages on older applications.
-                    if (_appVersion < Version)
-                        return returnValue = new PackageOpenResult(PackageOpenResultType.IncompatibleVersion);
+                    if (AppVersion < Version)
+                        return returnValue = new PackageOpenResult(PackageOpenResultType.IncompatibleVersion, Version);
                 }
                 catch(Exception e)
                 {
-                    return returnValue = new PackageOpenResult(PackageOpenResultType.Corrupted, e);
+                    return returnValue = new PackageOpenResult(PackageOpenResultType.Corrupted, e, Version);
                 }
 
                 // Perform any required package upgrades.
@@ -600,7 +604,7 @@ namespace DtronixPackage
                 }
 
                 // Perform upgrades at this time.
-                if (_appVersion > Version)
+                if (AppVersion > Version)
                 {
                     // "Renames" existing contents of this application's directory to a backup directory 
                     if (_preserveUpgrade)
@@ -639,20 +643,20 @@ namespace DtronixPackage
                 // and if it failed, stop opening.
                 if (!openReadOnly && _useLockFile && !await SetLockFile())
                 {
-                    return returnValue = new PackageOpenResult(PackageOpenResultType.Locked);
+                    return returnValue = new PackageOpenResult(PackageOpenResultType.Locked, Version);
                 }
 
                 OpenTime = DateTime.Now;
                 AutoSavePath = null;
 
-                return returnValue = await OnOpen(Version != _appVersion)
+                return returnValue = await OnOpen(Version != AppVersion)
                     ? PackageOpenResult.Success
-                    : new PackageOpenResult(PackageOpenResultType.ReadingFailure);
+                    : new PackageOpenResult(PackageOpenResultType.ReadingFailure, Version);
 
             }
             catch (Exception e)
             {
-                return returnValue = new PackageOpenResult(PackageOpenResultType.UnknownFailure, e);
+                return returnValue = new PackageOpenResult(PackageOpenResultType.UnknownFailure, e, Version);
             }
             finally
             {
@@ -846,7 +850,7 @@ namespace DtronixPackage
                     await OnSave();
 
                     // Write package version file
-                    await WriteString("version", _appVersion.ToString());
+                    await WriteString("version", AppVersion.ToString());
 
                     var log = new ChangelogEntry
                         (autoSave ? ChangelogEntryType.AutoSave : ChangelogEntryType.Save,
@@ -980,7 +984,7 @@ namespace DtronixPackage
                 // Save the new zip archive stream to the opened archive stream.
                 _openArchive = new ZipArchive(saveArchiveMemoryStream, ZipArchiveMode.Read, true);
 
-                Version = _appVersion;
+                Version = AppVersion;
 
                 return returnValue = PackageSaveResult.Success;
             }
@@ -1128,7 +1132,7 @@ namespace DtronixPackage
                     {
                         // Upgrade soft failed, log it and notify the opener.
                         Logger?.Error($"Unable to perform{(packageUpgrade ? " package" : " application")} upgrade of package to version {upgrade.Version}.");
-                        return new PackageOpenResult(PackageOpenResultType.UpgradeFailure);
+                        return new PackageOpenResult(PackageOpenResultType.UpgradeFailure, Version);
                     }
 
                     _changelog.Add(new ChangelogEntry(packageUpgrade
@@ -1149,7 +1153,7 @@ namespace DtronixPackage
                 {
                     // Upgrade hard failed.
                     Logger?.Error(e, $"Unable to perform{(packageUpgrade ? " package" : " application")} upgrade of package to version {upgrade.Version}.");
-                    return new PackageOpenResult(PackageOpenResultType.UpgradeFailure, e);
+                    return new PackageOpenResult(PackageOpenResultType.UpgradeFailure, e, Version);
                 }
 
                 // Since we did perform an upgrade, set set that the package has been changed.
