@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
-namespace DtronixPackage
+namespace DtronixPackage.Logging
 {
     public class LogEntry 
     {

@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using DtronixPackage.Logging;
 using NLog;
-using ILogger = DtronixPackage.Logging.ILogger;
 
 namespace DtronixPackage.Tests
 {
-    class NLogLogger : ILogger
+    class NLogLogger : Logging.ILogger
     {
         private readonly Logger _logger;
 

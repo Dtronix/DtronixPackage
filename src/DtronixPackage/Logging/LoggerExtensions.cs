@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
-using DtronixPackage.Logging;
 
-namespace DtronixPackage
+namespace DtronixPackage.Logging
 {
     public static class LoggerExtensions
     {
