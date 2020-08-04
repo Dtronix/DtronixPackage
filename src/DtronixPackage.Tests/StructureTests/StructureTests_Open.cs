@@ -43,16 +43,6 @@ namespace DtronixPackage.Tests.StructureTests
             Assert.AreEqual(ChangelogEntryType.Save, Package.Changelog[0].Type);
         }
 
-        private class TestJsonObject
-        {
-            public int Integer { get; set; }
-            public double Double { get; set; }
-            public string String { get; set; }
-            public byte Byte { get; set; }
-            public byte[] Bytes { get; set; }
-            public DateTimeOffset DateTimeOffset { get; set; }
-        }
-
         [Test]
         public async Task ReadsJsonFile()
         {

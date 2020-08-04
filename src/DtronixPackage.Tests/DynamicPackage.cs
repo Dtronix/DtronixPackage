@@ -17,6 +17,10 @@ namespace DtronixPackage.Tests
 
         public List<PackageUpgrade> UpgradeOverrides => Upgrades;
 
+        public DateTimeOffset? DateTimeOffsetOverride { get; set; }
+
+        internal override DateTimeOffset CurrentDateTimeOffset => DateTimeOffsetOverride ?? DateTimeOffset.Now;
+
         public DynamicPackage(
             Version appVersion,
             IntegrationTestBase integrationTest, 

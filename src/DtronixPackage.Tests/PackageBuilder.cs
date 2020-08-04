@@ -1,8 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
+using NUnit.Framework;
 
 namespace DtronixPackage.Tests
 {
@@ -38,12 +41,17 @@ namespace DtronixPackage.Tests
             {
                 var entry = archive.CreateEntry(content.Path);
                 await using var entryStream = entry.Open();
+                await using var streamWriter = new StreamWriter(entryStream);
                 switch (content.Data)
                 {
                     case string dataString:
                     {
-                        await using var streamWriter = new StreamWriter(entryStream);
                         await streamWriter.WriteAsync(dataString);
+                        break;
+                    }
+                    case Version dataVersion:
+                    {
+                        await streamWriter.WriteAsync(dataVersion.ToString());
                         break;
                     }
                     case byte[] dataBytes:
@@ -57,5 +65,46 @@ namespace DtronixPackage.Tests
 
             return archive;
         }
+
+        
+        public static void AreEqual(ZipArchive expected, ZipArchive actualArchive)
+        {
+            Assert.Multiple(async () =>
+            {
+                var expectedEntries = expected.Entries.ToList();
+
+                foreach (var actualEntry in actualArchive.Entries)
+                {
+                    var expectedEntry = expected.Entries.FirstOrDefault(e => e.FullName == actualEntry.FullName);
+                    if (expectedEntry == null)
+                    {
+                        Assert.Fail($"Additional entry {actualEntry.FullName} in actual archive.");
+                        continue;
+                    }
+
+                    expectedEntries.Remove(expectedEntry);
+
+                    await using var actualStream = actualEntry.Open();
+                    await using var expectedStream = expectedEntry.Open();
+
+                    FileAssert.AreEqual(expectedStream, actualStream, $"{actualEntry.FullName} file contents are not the same.");
+                }
+
+                if (expectedEntries.Count > 0)
+                {
+                    var files = string.Join(", ", expectedEntries.Select(e => e.FullName));
+                    Assert.Fail($"Expected files missing from actual: {files}.");
+                }
+            });
+        }
+
+        public static async Task AreEqual(ZipArchive expected, string actualPath)
+        {
+            await using var fileStream = new FileStream(actualPath, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite);
+            using var actualArchive = new ZipArchive(fileStream, ZipArchiveMode.Update, false);
+
+            AreEqual(expected, actualArchive);
+        }
     }
+
 }

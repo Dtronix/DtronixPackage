@@ -29,12 +29,12 @@ namespace DtronixPackage
         /// </summary>
         public string Note { get; set; }
 
-        public ChangelogEntry(ChangelogEntryType type)
+        public ChangelogEntry(ChangelogEntryType type, string username, string computerName, DateTimeOffset time)
         {
             Type = type;
-            ComputerName = Environment.MachineName;
-            Username = Environment.UserName;
-            Time = DateTimeOffset.Now;
+            ComputerName = computerName;
+            Username = username;
+            Time = time;
         }
 
         public ChangelogEntry()

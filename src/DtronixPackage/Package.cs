@@ -49,7 +49,7 @@ namespace DtronixPackage
 
         protected static ILogger Logger;
 
-        private static readonly Version PackageVersion 
+        internal static readonly Version PackageVersion 
             = typeof(Package<TContent>).Assembly.GetName().Version;
 
         /// <summary>
@@ -93,10 +93,26 @@ namespace DtronixPackage
         public bool IsMonitorEnabled { get; set; } = true;
 
         /// <summary>
+        /// Current username for writing to the changelog upon saving.
+        /// </summary>
+        public string Username { get; set; } = Environment.UserName;
+
+        /// <summary>
+        /// Current computer name or machine name for writing to the changelog upon saving.
+        /// </summary>
+        public string ComputerName { get; set; } = Environment.MachineName;
+
+        /// <summary>
         /// Contains a list of upgrades which will be performed on older versions of packages.
         /// Add to this list to include additional upgrades.  Will execute in the order listed.
         /// </summary>
         protected List<PackageUpgrade> Upgrades { get; } = new List<PackageUpgrade>();
+
+        /// <summary>
+        /// Internal calculated property used to get the current time.
+        /// Used for testing.
+        /// </summary>
+        internal virtual DateTimeOffset CurrentDateTimeOffset => DateTimeOffset.Now;
 
         /// <summary>
         /// True if the package has auto-save turned on.
@@ -832,7 +848,11 @@ namespace DtronixPackage
                     // Write package version file
                     await WriteString("version", _appVersion.ToString());
 
-                    var log = new ChangelogEntry(autoSave ? ChangelogEntryType.AutoSave : ChangelogEntryType.Save);
+                    var log = new ChangelogEntry
+                        (autoSave ? ChangelogEntryType.AutoSave : ChangelogEntryType.Save,
+                        Username,
+                        ComputerName,
+                        CurrentDateTimeOffset);
 
                     // Update the save log.
                     _changelog.Add(log);
@@ -1113,7 +1133,10 @@ namespace DtronixPackage
 
                     _changelog.Add(new ChangelogEntry(packageUpgrade
                         ? ChangelogEntryType.PackageUpgrade
-                        : ChangelogEntryType.ApplicationUpgrade)
+                        : ChangelogEntryType.ApplicationUpgrade,
+                        Username, 
+                        ComputerName,
+                        CurrentDateTimeOffset)
                     {
                         Note = packageUpgrade 
                             ? $"Package upgrade from {currentVersion} to {upgrade.Version}"
