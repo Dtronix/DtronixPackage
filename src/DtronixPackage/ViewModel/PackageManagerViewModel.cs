@@ -26,7 +26,38 @@ namespace DtronixPackage.ViewModel
         private readonly KeyBinding _openBinding;
         private readonly KeyBinding _newBinding;
 
-        private Dispatcher _appDispatcher;
+        private readonly Dispatcher _appDispatcher;
+
+        private int _autoSavePeriod = 60 * 1000;
+
+        /// <summary>
+        /// Period between auto-saves in milliseconds. Defaults to 60 seconds.
+        /// </summary>
+        public int AutoSavePeriod
+        {
+            get => _autoSavePeriod;
+            set
+            {
+                _autoSavePeriod = value;
+                _ = _package?.ConfigureAutoSave(_autoSavePeriod, _autoSavePeriod, AutoSaveEnabled);
+                OnPropertyChanged();
+            }
+        }
+
+        private bool _autoSaveEnabled;
+        /// <summary>
+        ///  Set to true to enable auto-saving of packages.
+        /// </summary>
+        public bool AutoSaveEnabled
+        {
+            get => _autoSaveEnabled;
+            set
+            {
+                _autoSaveEnabled = value;
+                if (Package != null)
+                    Package.AutoSaveEnabled = value;
+            }
+        }
 
         /// <summary>
         /// The currently managed file by the Manager.
@@ -41,7 +72,12 @@ namespace DtronixPackage.ViewModel
                 _package = value;
 
                 if (_package != null)
+                {
                     _package.MonitoredChanged += PackageOnMonitoredChanged;
+
+                    // Setup auto-saving.
+                    _ = _package.ConfigureAutoSave(_autoSavePeriod, _autoSavePeriod, AutoSaveEnabled);
+                }
 
                 _saveActionCommand.SetCanExecute(_package != null);
                 _saveAsActionCommand.SetCanExecute(_package != null);
@@ -49,14 +85,14 @@ namespace DtronixPackage.ViewModel
 
                 OnPropertyChanged();
 
-                FileChanged?.Invoke(this, new PackageEventArgs<TPackage>(value));
+                PackageChanged?.Invoke(this, new PackageEventArgs<TPackage>(value));
             }
         }
 
         public event EventHandler<PackageEventArgs<TPackage>> Created;
         public event EventHandler Closed;
         public event EventHandler<PackageEventArgs<TPackage>> Opened;
-        public event EventHandler<PackageEventArgs<TPackage>> FileChanged;
+        public event EventHandler<PackageEventArgs<TPackage>> PackageChanged;
 
         public event EventHandler<PackageMessageEventArgs> ShowMessage; 
 

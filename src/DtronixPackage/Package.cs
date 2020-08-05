@@ -1027,7 +1027,8 @@ namespace DtronixPackage
         /// The time interval between auto save invocations, in milliseconds.
         /// Specify Infinite to disable periodic auto saves.
         /// </param>
-        public async Task ConfigureAutoSave(int dueTime, int period)
+        /// <param name="enable">Set to true to enable saving now if configured to run.</param>
+        public async Task ConfigureAutoSave(int dueTime, int period, bool enable)
         {
             Logger?.ConditionalTrace($"ConfigureAutoSave(dueTime:{dueTime}, period:{period})");
 
@@ -1061,7 +1062,7 @@ namespace DtronixPackage
             }
 
             // If the auto save is configured to run at least once, enable the auto save.  Otherwise disable.
-            AutoSaveEnabled = dueTime >= 0 || period >= 0;
+            AutoSaveEnabled = enable && (dueTime >= 0 || period >= 0);
         }
 
         private async Task AutoSave(bool synchronous)
