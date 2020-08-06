@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using NUnit.Framework;
@@ -69,6 +70,11 @@ namespace DtronixPackage.Tests
         
         public static void AreEqual(ZipArchive expected, ZipArchive actualArchive)
         {
+            async Task<string> GetStreamAsString(Stream stream)
+            {
+                using var reader = new StreamReader(stream, Encoding.UTF8, leaveOpen: true);
+                return await reader.ReadToEndAsync();
+            }
             Assert.Multiple(async () =>
             {
                 var expectedEntries = expected.Entries.ToList();
@@ -86,6 +92,16 @@ namespace DtronixPackage.Tests
 
                     await using var actualStream = actualEntry.Open();
                     await using var expectedStream = expectedEntry.Open();
+
+                    switch (Path.GetExtension(expectedEntry.Name.ToLower()))
+                    {
+                        case ".json":
+                        case ".txt":
+                            var actualString = GetStreamAsString(actualStream);
+                            var expectedString = GetStreamAsString(expectedStream);
+                            Assert.AreEqual(expectedString, actualString);
+                            continue;
+                    }
 
                     FileAssert.AreEqual(expectedStream, actualStream, $"{actualEntry.FullName} file contents are not the same.");
                 }
