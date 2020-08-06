@@ -97,8 +97,8 @@ namespace DtronixPackage.Tests
                     {
                         case ".json":
                         case ".txt":
-                            var actualString = GetStreamAsString(actualStream);
-                            var expectedString = GetStreamAsString(expectedStream);
+                            var actualString = await GetStreamAsString(actualStream);
+                            var expectedString = await GetStreamAsString(expectedStream);
                             Assert.AreEqual(expectedString, actualString);
                             continue;
                     }
