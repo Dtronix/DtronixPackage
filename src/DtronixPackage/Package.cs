@@ -21,7 +21,7 @@ namespace DtronixPackage
     /// </summary>
     /// <typeparam name="TContent"></typeparam>
     [SuppressMessage("ReSharper", "StaticMemberInGenericType")]
-    public abstract class Package<TContent> : IDisposable
+    public abstract class Package<TContent> : IPackage 
         where TContent : PackageContent, new()
     {
         private readonly string _appName;
@@ -38,12 +38,12 @@ namespace DtronixPackage
         private readonly List<ChangelogEntry> _changelog = new List<ChangelogEntry>();
         private readonly Timer _autoSaveTimer;
         private bool _autoSaveEnabled;
-        private readonly Dictionary<object, ChangeListener> _registeredListeners 
+        private readonly Dictionary<object, ChangeListener> _monitorListeners 
             = new Dictionary<object, ChangeListener>();
         private int _autoSavePeriod = 60 * 1000;
         private int _autoSaveDueTime = 60 * 1000;
         private bool _disposed;
-        private bool _isDataModified;
+        private bool _isContentModified;
         private Version _openPackageVersion;
 
         protected static ILogger Logger;
@@ -134,12 +134,12 @@ namespace DtronixPackage
         /// <summary>
         /// True if the data has been modified since the last save.
         /// </summary>
-        public bool IsDataModified
+        public bool IsContentModified
         {
-            get => _isDataModified;
+            get => _isContentModified;
             internal set
             {
-                _isDataModified = value;
+                _isContentModified = value;
                 IsDataModifiedSinceAutoSave = value;
 
                 // Only invoke the MonitorChanged event if there are changes.
@@ -148,22 +148,7 @@ namespace DtronixPackage
             }
         }
 
-        private TContent _content;
-
-        public TContent Content
-        {
-            get => _content;
-            protected set
-            {
-                if(_content != null)
-                    MonitorDeregister(_content);
-
-                _content = value; 
-
-                if(_content != null) 
-                    MonitorRegister(value);
-            }
-        }
+        public TContent Content { get; }
 
         /// <summary>
         /// Time this package was initially opened/created.
@@ -222,6 +207,8 @@ namespace DtronixPackage
                 AllowTrailingCommas = true,
             };
 
+            Content = new TContent();
+            MonitorRegister(Content);
         }
 
         /// <summary>
@@ -230,36 +217,12 @@ namespace DtronixPackage
         /// </summary>
         /// <param name="isUpgrade"></param>
         /// <returns>True of successful opening. False otherwise.</returns>
-        protected virtual async Task<bool> OnOpen(bool isUpgrade)
-        {
-            try
-            {
-                Content = await ReadJson<TContent>("content.json");
-            }
-            catch (Exception e)
-            {
-                Logger?.Error(e, "Unable to parse content.json file.");
-                Content = null;
-                return false;
-            }
-
-            return true;
-        }
+        protected abstract Task<bool> OnOpen(bool isUpgrade);
 
         /// <summary>
         /// Method called when saving.  By default, will save the Content object to contents.json
         /// </summary>
-        protected virtual async Task OnSave()
-        {
-            try
-            {
-                await WriteJson("content.json", Content);
-            }
-            catch (Exception e)
-            {
-                Logger?.Error(e, "Unable to write content.json file.");
-            }
-        }
+        protected abstract Task OnSave();
 
         protected abstract string OnTempFilePathRequest(string fileName);
 
@@ -450,7 +413,6 @@ namespace DtronixPackage
 
             try
             {
-
                 SavePath = path;
                 _lockFilePath = SavePath + ".lock";
                 IsReadOnly = openReadOnly;
@@ -812,7 +774,7 @@ namespace DtronixPackage
                 
                 return await SaveInternal(false);
             }
-            catch (IOException e)
+            catch (Exception e)
             {
                 return new PackageSaveResult(PackageSaveResultType.Failure, e);
             }
@@ -1000,7 +962,7 @@ namespace DtronixPackage
                 // to actually be saved to the destination.
                 if (returnValue == PackageSaveResult.Success && autoSave == false)
                 {
-                    IsDataModified = false;
+                    IsContentModified = false;
 
                     // Since the package was saved, the package is no longer in read-only mode.
                     IsReadOnly = false;
@@ -1158,7 +1120,7 @@ namespace DtronixPackage
                 }
 
                 // Since we did perform an upgrade, set set that the package has been changed.
-                IsDataModified = true;
+                IsContentModified = true;
             }
 
             return null;
@@ -1171,13 +1133,13 @@ namespace DtronixPackage
                 return;
 
             // Do not double register the same object.
-            if (_registeredListeners.ContainsKey(obj))
+            if (_monitorListeners.ContainsKey(obj))
                 return;
             
             var listener = ChangeListener.Create(obj);
             listener.CollectionChanged += MonitorListenerOnCollectionChanged;
             listener.PropertyChanged += MonitorListenerOnPropertyChanged;
-            _registeredListeners.Add(obj, listener);
+            _monitorListeners.Add(obj, listener);
 
         }
 
@@ -1188,10 +1150,10 @@ namespace DtronixPackage
                 return;
 
             // Do nothing if it is not registered.
-            if (!_registeredListeners.TryGetValue(obj, out var listener))
+            if (!_monitorListeners.TryGetValue(obj, out var listener))
                 return;
 
-            _registeredListeners.Remove(obj);
+            _monitorListeners.Remove(obj);
             listener.CollectionChanged -= MonitorListenerOnCollectionChanged;
             listener.PropertyChanged -= MonitorListenerOnPropertyChanged;
             listener.Dispose();
@@ -1227,7 +1189,7 @@ namespace DtronixPackage
         protected void DataModified()
         {
             Logger?.ConditionalTrace("DataModified()");
-            IsDataModified = true;
+            IsContentModified = true;
         }
         
         /// <summary>
@@ -1272,10 +1234,12 @@ namespace DtronixPackage
             _lockFilePath = null;
             _changelog.Clear();
             _openPackageVersion = null;
-            foreach (var registeredListener in _registeredListeners)
+            foreach (var registeredListener in _monitorListeners)
                 registeredListener.Value.Dispose();
 
-            _registeredListeners.Clear();
+            _monitorListeners.Clear();
+            Content.Clear(this);
+            MonitorRegister(Content);
 
             Version = null;
             SavePath = null;
@@ -1286,7 +1250,7 @@ namespace DtronixPackage
             if(AutoSaveEnabled)
                 AutoSaveEnabled = false;
 
-            IsDataModified = false;
+            IsContentModified = false;
             OpenTime = default;
             AutoSavePath = null;
 

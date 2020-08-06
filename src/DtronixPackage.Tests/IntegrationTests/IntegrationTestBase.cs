@@ -102,7 +102,7 @@ namespace DtronixPackage.Tests.IntegrationTests
 
         
         protected async Task<DynamicPackage> CreateAndSavePackage(
-            Func<DynamicPackage, Task> onSave, 
+            Func<DynamicPackage<EmptyPackageContent>, Task> onSave, 
             Version appVersion = null)
         {
 
@@ -118,13 +118,13 @@ namespace DtronixPackage.Tests.IntegrationTests
             return file;
         }
         
-        protected async Task CreateAndClosePackage(Func<DynamicPackage, Task> onSave, Version appVersion = null)
+        protected async Task CreateAndClosePackage(Func<DynamicPackage<EmptyPackageContent>, Task> onSave, Version appVersion = null)
         {
             var file = await CreateAndSavePackage(onSave, appVersion);
             file.Close();
         }
 
-        protected async Task OpenWaitForCompletionPackage(Func<DynamicPackage, Task<bool>> onOpen)
+        protected async Task OpenWaitForCompletionPackage(Func<DynamicPackage<EmptyPackageContent>, Task<bool>> onOpen)
         {
             var file = new DynamicPackage(new Version(1,0), this, false, false)
             {

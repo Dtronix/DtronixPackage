@@ -19,12 +19,6 @@ namespace DtronixPackage.ViewModel
         private TPackage _package;
         private string _windowTitle;
         private bool _addedModifiedText;
-        
-        private readonly Dictionary<Window, KeyBinding> _attachedBindings = new Dictionary<Window, KeyBinding>();
-        private readonly KeyBinding _saveBinding;
-        private readonly KeyBinding _saveAsBinding;
-        private readonly KeyBinding _openBinding;
-        private readonly KeyBinding _newBinding;
 
         private readonly Dispatcher _appDispatcher;
 
@@ -138,13 +132,6 @@ namespace DtronixPackage.ViewModel
             NewCommand = _newActionCommand 
                 = new ActionCommand(NewCommand_Execute, true, new KeyGesture(Key.N, ModifierKeys.Control));
 
-            _saveBinding = new KeyBinding(SaveCommand, new KeyGesture(Key.S, ModifierKeys.Control));
-            _saveAsBinding = new KeyBinding(SaveAsCommand, 
-                new KeyGesture(Key.S, ModifierKeys.Control | ModifierKeys.Shift));
-
-            _openBinding = new KeyBinding(OpenCommand, new KeyGesture(Key.O, ModifierKeys.Control));
-            _newBinding = new KeyBinding(NewCommand, new KeyGesture(Key.N, ModifierKeys.Control));
-
             // Get the current dispatcher.  Can be null.
             _appDispatcher = Application.Current?.Dispatcher;
         }
@@ -166,61 +153,6 @@ namespace DtronixPackage.ViewModel
         /// <param name="path">Destination path for the package to save.</param>
         /// <returns>True on successful selection of package destination. False to cancel the saving process.</returns>
         protected abstract bool BrowseSaveFile(out string path);
-
-        public void AttachInputBindings(
-            UIElement uiElement, 
-            FileManagerInputBindings bindings = FileManagerInputBindings.All)
-        {
-            var eleBinds = uiElement.InputBindings;
-
-            if (bindings.HasFlag(FileManagerInputBindings.Save))
-            {
-                if (!eleBinds.Contains(_saveBinding))
-                    eleBinds.Add(_saveBinding);
-
-                if (!eleBinds.Contains(_saveAsBinding))
-                    eleBinds.Add(_saveAsBinding);
-            }
-
-            if (bindings.HasFlag(FileManagerInputBindings.Creation))
-            {
-                if (!eleBinds.Contains(_newBinding))
-                    eleBinds.Add(_newBinding);
-            }
-
-            if (bindings.HasFlag(FileManagerInputBindings.Open))
-            {
-                if (!eleBinds.Contains(_openBinding))
-                    eleBinds.Add(_openBinding);
-            }
-        }
-
-        public void DetachInputBindings(UIElement uiElement)
-        {
-            var eleBinds = uiElement.InputBindings;
-
-            if (eleBinds.Contains(_saveBinding))
-                eleBinds.Remove(_saveBinding);
-
-            if (eleBinds.Contains(_saveAsBinding))
-                eleBinds.Remove(_saveAsBinding);
-
-            if (eleBinds.Contains(_newBinding))
-                eleBinds.Remove(_newBinding);
-
-            if (eleBinds.Contains(_openBinding))
-                eleBinds.Remove(_openBinding);
-        }
-
-        public async void OnWidowClosing(object sender, CancelEventArgs e)
-        {
-            if (Package == null || e.Cancel)
-                return;
-
-            // Attempt to close if any package is open.
-            if (!await TryClose())
-                e.Cancel = true;
-        }
 
         protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {
@@ -280,7 +212,7 @@ namespace DtronixPackage.ViewModel
             if (Package == null) 
                 return true;
 
-            if (Package.IsDataModified)
+            if (Package.IsContentModified)
             {
                 if (await AskSave() == MessageBoxResult.Cancel)
                     return false;
@@ -354,7 +286,22 @@ namespace DtronixPackage.ViewModel
                     
                     return false;
                 }
-                else
+
+                if (result.Result == PackageOpenResultType.UnknownFailure)
+                {
+                    var message = new PackageMessageEventArgs(
+                        PackageMessageEventArgs.MessageType.OK,
+                        $"Can't open file.\r\n\r\n{result.Exception}",
+                        "Error Opening",
+                        MessageBoxImage.Exclamation);
+
+                    ShowMessage?.Invoke(this, message);
+                    
+                    return false;
+                }
+
+                
+                if (result.Result == PackageOpenResultType.Locked)
                 {
                     var readOnlyText = result.LockInfo != null 
                         ? $"{path} is currently opened by {result.LockInfo.Username} on {result.LockInfo.DateOpened:F}." 
@@ -427,6 +374,15 @@ namespace DtronixPackage.ViewModel
 
             var result = await package.Save(package.SavePath);
             StatusChange();
+
+            if (!result.IsSuccessful)
+            {
+                ShowMessage?.Invoke(this, new PackageMessageEventArgs(
+                    PackageMessageEventArgs.MessageType.OK,
+                    "Could not save package.\r\n\r\nError:"+result.Exception.ToString(),
+                    "Error Saving",
+                    MessageBoxImage.Error));
+            }
             
             return result == PackageSaveResult.Success;
         }
@@ -504,7 +460,7 @@ namespace DtronixPackage.ViewModel
                 }
 
                 // Add modified to the end if there are changes.
-                if(Package?.IsDataModified == true) 
+                if(Package?.IsContentModified == true) 
                     WindowTitle += " (Modified)";
 
                 OnPropertyChanged(nameof(IsReadOnly));
@@ -515,10 +471,10 @@ namespace DtronixPackage.ViewModel
         {
             InvokeOnDispatcher(() => {          
                 // Change the save state to ensure we only save when there are changes.  Leave SaveAs alone.
-                _saveActionCommand.SetCanExecute(Package?.IsDataModified == true);
+                _saveActionCommand.SetCanExecute(Package?.IsContentModified == true);
             });
 
-            if (_addedModifiedText || !Package.IsDataModified)
+            if (_addedModifiedText || !Package.IsContentModified)
                 return;
 
             _addedModifiedText = true;
@@ -527,7 +483,7 @@ namespace DtronixPackage.ViewModel
                 WindowTitle += " (Modified)"; 
 
                 // Change the save state to ensure we only save when there are changes.  Leave SaveAs alone.
-                _saveActionCommand.SetCanExecute(Package?.IsDataModified == true);
+                _saveActionCommand.SetCanExecute(Package?.IsContentModified == true);
             });
         }
     }

@@ -246,5 +246,12 @@ namespace DtronixPackage.Tests.IntegrationTests
             var result = await fileOpen.Open(PackageFilename);
             Assert.AreEqual(PackageOpenResultType.IncompatibleApplication, result.Result);
         }
+
+        [Test]
+        public async Task FailsOpeningWhenAlreadyOpen()
+        {
+            var package = await CreateAndSavePackage(null);
+            Assert.ThrowsAsync<InvalidOperationException>(async () => await package.Open(PackageFilename));
+        }
     }
 }

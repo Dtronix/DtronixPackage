@@ -98,7 +98,7 @@ namespace DtronixPackage.Tests.IntegrationTests
             await file.ConfigureAutoSave(0, -1, true);
             await Utilities.AssertFileExistWithin(tempSave);
 
-            Assert.IsTrue(file.IsDataModified);
+            Assert.IsTrue(file.IsContentModified);
         }
 
         [Test]

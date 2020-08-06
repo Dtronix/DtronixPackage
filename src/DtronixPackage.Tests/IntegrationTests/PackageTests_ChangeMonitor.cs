@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using NUnit.Framework;
 
 namespace DtronixPackage.Tests.IntegrationTests
@@ -6,70 +7,83 @@ namespace DtronixPackage.Tests.IntegrationTests
     public class PackageTests_ChangeMonitor : IntegrationTestBase
     {
 
-        private void MonitorChangesTests(DynamicPackageData file, Action test)
+        private void MonitorChangesTests(DynamicPackageData package, Action test)
         {
-            Assert.IsFalse(file.IsDataModified);
-            file.Data.Children.Add(new PackageDataContractChild());
+            Assert.IsFalse(package.IsContentModified);
+            package.Data.Children.Add(new PackageDataContractChild());
             test.Invoke();
 
             // Child property
-            file.IsDataModified = false;
-            file.Data.Children[0].Integer = 50;
+            package.IsContentModified = false;
+            package.Data.Children[0].Integer = 50;
             test.Invoke();
 
             // Child property
-            file.IsDataModified = false;
-            file.Data.Children[0].String = "new string";
+            package.IsContentModified = false;
+            package.Data.Children[0].String = "new string";
             test.Invoke();
 
             // New child of child
-            file.IsDataModified = false;
-            file.Data.Children[0].Children.Add(new PackageDataContractChild());
+            package.IsContentModified = false;
+            package.Data.Children[0].Children.Add(new PackageDataContractChild());
             test.Invoke();
 
             // Child of child property
-            file.IsDataModified = false;
-            file.Data.Children[0].Children[0].Integer = 51;
+            package.IsContentModified = false;
+            package.Data.Children[0].Children[0].Integer = 51;
             test.Invoke();
 
             // Moving child of child
-            file.Data.Children[0].Children.Add(new PackageDataContractChild());
-            file.IsDataModified = false;
-            file.Data.Children[0].Children.Move(1, 0);
+            package.Data.Children[0].Children.Add(new PackageDataContractChild());
+            package.IsContentModified = false;
+            package.Data.Children[0].Children.Move(1, 0);
             test.Invoke();
 
             // Remove child of child
-            file.IsDataModified = false;
-            file.Data.Children[0].Children.RemoveAt(1);
+            package.IsContentModified = false;
+            package.Data.Children[0].Children.RemoveAt(1);
             test.Invoke();
         }
 
         [Test]
         public void RegistersChanges()
         {
-            var file = new DynamicPackageData(new Version(1,0), this);
-            MonitorChangesTests(file, () => Assert.IsTrue(file.IsDataModified));
+            var package = new DynamicPackageData(new Version(1,0), this);
+            MonitorChangesTests(package, () => Assert.IsTrue(package.IsContentModified));
         }
 
         [Test]
         public void DeRegistersChanges()
         {
-            var file = new DynamicPackageData(new Version(1,0), this);
-            file.MonitorDeregisterOverride(file.Data);
-            MonitorChangesTests(file, () => Assert.IsFalse(file.IsDataModified));
+            var package = new DynamicPackageData(new Version(1,0), this);
+            package.MonitorDeregisterOverride(package.Data);
+            MonitorChangesTests(package, () => Assert.IsFalse(package.IsContentModified));
         }
 
         [Test]
-        public void IgnoresChangesChanges()
+        public void IgnoresChanges()
         {
-            var file = new DynamicPackageData(new Version(1,0), this);
+            var package = new DynamicPackageData(new Version(1,0), this);
 
-            file.MonitorIgnore(() =>
+            package.MonitorIgnore(() =>
             {
-                file.Data.Children.Add(new PackageDataContractChild());
+                package.Data.Children.Add(new PackageDataContractChild());
             });
 
-            Assert.IsFalse(file.IsDataModified);
+            Assert.IsFalse(package.IsContentModified);
+        }
+
+        [Test]
+        public void IgnoresChangesAfterClosing()
+        {
+            var package = new DynamicPackage<SimplePackageContent>(new Version(1,0), this, false, false);
+            var subTypeInstance = package.Content.SubTypeInstance = new SimplePackageContent.SubType();
+            package.IsContentModified = false;
+            package.Close();
+
+            subTypeInstance.Value = "test 2";
+
+            Assert.IsFalse(package.IsContentModified);
         }
 
 

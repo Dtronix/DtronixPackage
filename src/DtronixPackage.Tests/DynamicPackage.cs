@@ -5,13 +5,37 @@ using DtronixPackage.Tests.IntegrationTests;
 
 namespace DtronixPackage.Tests
 {
-    public class DynamicPackage : Package<PackageContent>
+
+    public class DynamicPackage : DynamicPackage<EmptyPackageContent>
+    {
+        public DynamicPackage(
+            Version appVersion,
+            IntegrationTestBase integrationTest,
+            bool preserveUpgrade,
+            bool useLockFile)
+            : base(appVersion, integrationTest, preserveUpgrade, useLockFile)
+        {
+        }
+
+        public DynamicPackage(
+            Version appVersion,
+            IntegrationTestBase integrationTest,
+            bool preserveUpgrade,
+            bool useLockFile,
+            string appName)
+            : base(appVersion, integrationTest, preserveUpgrade, useLockFile, appName)
+        {
+        }
+    }
+
+    public class DynamicPackage<TContent> : Package<TContent>
+        where TContent : PackageContent, new()
     {
         private readonly IntegrationTestBase _integrationTest;
 
-        public Func<DynamicPackage, Task<bool>> Opening;
+        public Func<DynamicPackage<TContent>, Task<bool>> Opening;
 
-        public Func<DynamicPackage, Task> Saving;
+        public Func<DynamicPackage<TContent>, Task> Saving;
 
         public Func<string> TempPackagePathRequest;
 
@@ -39,7 +63,7 @@ namespace DtronixPackage.Tests
             : base(appName, appVersion, preserveUpgrade, useLockFile)
         {
             _integrationTest = integrationTest;
-            Logger = new NLogLogger(nameof(DynamicPackage));
+            Logger = new NLogLogger(nameof(DynamicPackage<TContent>));
         }
 
         protected override async Task<bool> OnOpen(bool isUpgrade)

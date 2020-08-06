@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace DtronixPackage.Tests.PackageManagerViewModelTests
 {
-    public class PackageManagerViewModelPackage : Package<PackageContent>
+    public class PackageManagerViewModelPackage : Package<EmptyPackageContent>
     {
         public Func<PackageManagerViewModelPackage, Task<bool>> Opening;
 
