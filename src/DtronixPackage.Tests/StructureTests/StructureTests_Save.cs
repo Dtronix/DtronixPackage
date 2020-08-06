@@ -20,7 +20,8 @@ namespace DtronixPackage.Tests.StructureTests
         {
             await base.Setup();
 
-            var dateTimeOffsetNow = DateTimeOffset.Now;
+            // Set to a specific point in time so that the JSON writer does not trim off trailing zeros.
+            var dateTimeOffsetNow = DateTimeOffset.Parse("2020-08-03T17:42:58.0241586-04:00");
             Package.DateTimeOffsetOverride = dateTimeOffsetNow;
             _changelogEntry = "[{\"Type\":3,\"Username\":\"" + Package.Username + "\",\"ComputerName\":\"" +
                               Package.ComputerName + "\",\"Time\":\"" + dateTimeOffsetNow.ToString("O") + "\"}]";
