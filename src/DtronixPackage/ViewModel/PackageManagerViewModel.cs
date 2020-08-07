@@ -301,7 +301,8 @@ namespace DtronixPackage.ViewModel
                 }
 
                 
-                if (result.Result == PackageOpenResultType.Locked)
+                if (result.Result == PackageOpenResultType.Locked 
+                    || result.Result == PackageOpenResultType.PermissionFailure)
                 {
                     var readOnlyText = result.LockInfo != null 
                         ? $"{path} is currently opened by {result.LockInfo.Username} on {result.LockInfo.DateOpened:F}." 
