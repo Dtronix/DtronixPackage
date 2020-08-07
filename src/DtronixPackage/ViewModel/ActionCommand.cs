@@ -1,12 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.Text;
 using System.Windows.Input;
 
-namespace DtronixPackage
+namespace DtronixPackage.ViewModel
 {
-    internal class ActionCommand : ICommand
+    internal class ActionCommand : IActionCommand
     {
         private readonly Action _execute;
         private readonly Action<object> _executeParam;

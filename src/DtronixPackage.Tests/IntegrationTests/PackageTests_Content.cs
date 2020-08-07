@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.Threading.Tasks;
 using NUnit.Framework;
@@ -44,6 +45,40 @@ namespace DtronixPackage.Tests.IntegrationTests
 
                 Assert.AreEqual(SampleByteArray, readBuffer);
                 return Task.FromResult(true);
+            });
+        }
+
+        [Test]
+        public void ContentIsInstancedOnPackageCreation()
+        {
+            var package = new DynamicPackage<SimplePackageContent>(new Version(1, 0), this, false, false);
+            Assert.NotNull(package.Content);
+        }
+
+        [Test]
+        public void ContentIsResetOnClose()
+        {
+            var package = new DynamicPackage<SimplePackageContent>(new Version(1, 0), this, false, false)
+            {
+                Content =
+                {
+                    Bytes = new byte[] {0, 1, 2, 3, 4},
+                    Double = 12345.6789,
+                    String = "String Test",
+                    DateTimeOffset = DateTimeOffset.Now,
+                    Integer = 50,
+                    Byte = 128
+                }
+            }; 
+            package.Close();
+            Assert.Multiple(() =>
+            {
+                Assert.AreEqual(default(byte[]), package.Content.Bytes);
+                Assert.AreEqual(default(byte), package.Content.Byte);
+                Assert.AreEqual(default(string), package.Content.String);
+                Assert.AreEqual(default(int), package.Content.Integer);
+                Assert.AreEqual(default(double), package.Content.Double);
+                Assert.AreEqual(default(DateTimeOffset), package.Content.DateTimeOffset);
             });
         }
     }

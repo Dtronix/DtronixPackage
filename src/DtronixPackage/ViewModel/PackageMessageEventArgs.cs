@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Windows;
 
-namespace DtronixPackage
+namespace DtronixPackage.ViewModel
 {
     public class PackageMessageEventArgs : EventArgs
     {

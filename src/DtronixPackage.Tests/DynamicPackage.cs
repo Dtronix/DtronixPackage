@@ -1,20 +1,49 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using DtronixPackage.Tests.IntegrationTests;
 
 namespace DtronixPackage.Tests
 {
-    public class DynamicPackage : Package<PackageContent>
+
+    public class DynamicPackage : DynamicPackage<EmptyPackageContent>
+    {
+        public DynamicPackage(
+            Version appVersion,
+            IntegrationTestBase integrationTest,
+            bool preserveUpgrade,
+            bool useLockFile)
+            : base(appVersion, integrationTest, preserveUpgrade, useLockFile)
+        {
+        }
+
+        public DynamicPackage(
+            Version appVersion,
+            IntegrationTestBase integrationTest,
+            bool preserveUpgrade,
+            bool useLockFile,
+            string appName)
+            : base(appVersion, integrationTest, preserveUpgrade, useLockFile, appName)
+        {
+        }
+    }
+
+    public class DynamicPackage<TContent> : Package<TContent>
+        where TContent : PackageContent, new()
     {
         private readonly IntegrationTestBase _integrationTest;
 
-        public Func<DynamicPackage, Task<bool>> Opening;
+        public Func<DynamicPackage<TContent>, Task<bool>> Opening;
 
-        public Func<DynamicPackage, Task> Saving;
+        public Func<DynamicPackage<TContent>, Task> Saving;
 
         public Func<string> TempPackagePathRequest;
 
-        public List<PackageUpgrade<PackageContent>> UpgradeOverrides => Upgrades;
+        public List<PackageUpgrade> UpgradeOverrides => Upgrades;
+
+        public DateTimeOffset? DateTimeOffsetOverride { get; set; }
+
+        internal override DateTimeOffset CurrentDateTimeOffset => DateTimeOffsetOverride ?? DateTimeOffset.Now;
 
         public DynamicPackage(
             Version appVersion,
@@ -34,6 +63,7 @@ namespace DtronixPackage.Tests
             : base(appName, appVersion, preserveUpgrade, useLockFile)
         {
             _integrationTest = integrationTest;
+            Logger = new NLogLogger(nameof(DynamicPackage<TContent>));
         }
 
         protected override async Task<bool> OnOpen(bool isUpgrade)
@@ -47,11 +77,14 @@ namespace DtronixPackage.Tests
             }
             catch (Exception ex)
             {
-                _integrationTest.ThrowException = ex;
-                _integrationTest.TestComplete.Set();
+                if (_integrationTest != null)
+                {
+                    _integrationTest.ThrowException = ex;
+                    _integrationTest.TestComplete.Set();
+                }
+
+                throw;
             }
-            
-            return false;
         }
 
         protected override async Task OnSave()
@@ -63,8 +96,13 @@ namespace DtronixPackage.Tests
             }
             catch (Exception ex)
             {
-                _integrationTest.ThrowException = ex;
-                _integrationTest.TestComplete.Set();
+                if (_integrationTest != null)
+                {
+                    _integrationTest.ThrowException = ex;
+                    _integrationTest.TestComplete.Set();
+                }
+
+                throw;
             }
 
         }

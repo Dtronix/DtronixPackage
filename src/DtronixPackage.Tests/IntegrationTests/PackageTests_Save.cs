@@ -16,23 +16,23 @@ namespace DtronixPackage.Tests.IntegrationTests
         {
             await CreateAndClosePackage(async f => await f.WriteJson(ContentFileName, SampleJson), firstVersion);
 
-            // Open, save & close the file.
-            var file = new DynamicPackage(secondVersion, this, saveMissMatch, false)
+            // Open, save & close the package.
+            var package = new DynamicPackage(secondVersion, this, saveMissMatch, false)
             {
                 Saving = async argsPackage =>
                 {
                     await argsPackage.WriteJson(ContentFileName, SampleJson);
                 }
             };
-            return file;
+            return package;
         }
 
         private async Task PackageVersionMissMatchInternal(bool saveMissMatch)
         {
-            var file = await CreateVersionMissMatchedPackageInternal(saveMissMatch, new Version(1, 0), new Version(1, 1));
-            await file.Open(PackageFilename);
-            await file.Save(PackageFilename);
-            file.Close();
+            var package = await CreateVersionMissMatchedPackageInternal(saveMissMatch, new Version(1, 0), new Version(1, 1));
+            await package.Open(PackageFilename);
+            await package.Save(PackageFilename);
+            package.Close();
 
             await using var fileStream = new FileStream(PackageFilename, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite);
             using var archive = new ZipArchive(fileStream);
@@ -55,35 +55,58 @@ namespace DtronixPackage.Tests.IntegrationTests
         [Test]
         public async Task LockFile_IsReadOnly()
         {
-            // Open, save & close the file.
-            var file = new DynamicPackage(new Version(1, 0), this, false, true);
-            await file.Save(PackageFilename);
-            AssertFileIsReadOnly(PackageFilename + ".lock");
+            // Open, save & close the package.
+            var package = new DynamicPackage(new Version(1, 0), this, false, true);
+            await package.Save(PackageFilename);
+            Utilities.AssertFileIsReadOnly(PackageFilename + ".lock");
 
-            file.Close();
+            package.Close();
         }
 
         [Test]
         public async Task IsReadOnly()
         {
-            // Open, save & close the file.
-            var file = new DynamicPackage(new Version(1,0), this, false, false);
+            // Open, save & close the package.
+            var package = new DynamicPackage(new Version(1,0), this, false, false);
 
-            await file.Save(PackageFilename);
-            AssertFileIsReadOnly(PackageFilename);
+            await package.Save(PackageFilename);
+            Utilities.AssertFileIsReadOnly(PackageFilename);
 
-            file.Close();
+            package.Close();
         }
 
         [Test]
         public async Task SetsIsDataModifiedToFalse()
         {
-            var file = new DynamicPackageData(new Version(1,0), this);
+            var package = new DynamicPackageData(new Version(1,0), this);
 
-            file.Data.Children.Add(new PackageDataContractChild());
-            await file.Save(PackageFilename);
-            Assert.IsFalse(file.IsDataModified);
+            package.Data.Children.Add(new PackageDataContractChild());
+            await package.Save(PackageFilename);
+            Assert.IsFalse(package.IsContentModified);
         }
-        
+
+        [Test]
+        public async Task ChangesSavePath()
+        {
+            var package = new DynamicPackageData(new Version(1,0), this);
+            package.Data.Children.Add(new PackageDataContractChild());
+            await package.Save(PackageFilename);
+
+            await Utilities.AssertFileExistWithin(PackageFilename);
+            var secondPath = Path.Combine("saves/", Guid.NewGuid() + ".file");
+            await package.Save(secondPath);
+            await Utilities.AssertFileExistWithin(secondPath);
+        }
+
+        [Test]
+        public async Task ChangeSavePathWritesContentToPackage()
+        {
+            var package = new DynamicPackageData(new Version(1,0), this);
+            package.Data.Children.Add(new PackageDataContractChild());
+            await package.Save(PackageFilename);
+            var secondPath = Path.Combine("saves/", Guid.NewGuid() + ".file");
+            await package.Save(secondPath);
+            Assert.AreNotEqual(new FileInfo(secondPath).Length, 0, "File length was zero.");
+        }
     }
 }

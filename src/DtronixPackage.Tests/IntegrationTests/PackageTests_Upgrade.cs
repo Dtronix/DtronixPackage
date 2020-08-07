@@ -7,7 +7,7 @@ using NUnit.Framework;
 
 namespace DtronixPackage.Tests.IntegrationTests
 {
-    public class PackageUpgradeTests : IntegrationTestBase
+    public class PackageTests_Upgrade : IntegrationTestBase
     {
         [Test]
         public async Task UpgradeIgnoresPastVersions()
