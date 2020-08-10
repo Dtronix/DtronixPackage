@@ -54,7 +54,7 @@ namespace DtronixPackage.Tests.StructureTests
                 ("DtronixPackage.Tests/version", "1.0.0"),
                 ("DtronixPackage.Tests/test.json", "{\"Integer\":543210,\"Double\":1234.5678,\"String\":\"Test String\",\"Byte\":128,\"Bytes\":\"AAECAwQFBgcICQ==\",\"DateTimeOffset\":\"2020-08-03T17:42:58.0241586-04:00\"}")
             });
-            Package.Opening = async (reader, package) =>
+            Package.Reading = async (reader, package) =>
             {
                 var testJson = await reader.ReadJson<TestJsonObject>("test.json");
                 
@@ -81,7 +81,7 @@ namespace DtronixPackage.Tests.StructureTests
                 ("DtronixPackage.Tests/version", "1.0.0"),
                 ("DtronixPackage.Tests/test.txt", testString)
             });
-            Package.Opening = async (reader, package) =>
+            Package.Reading = async (reader, package) =>
             {
                 Assert.AreEqual(testString, await reader.ReadString("test.txt"));
                 return true;
@@ -100,7 +100,7 @@ namespace DtronixPackage.Tests.StructureTests
                 ("DtronixPackage.Tests/version", "1.0.0"),
                 ("DtronixPackage.Tests/test.bin", binaryData)
             });
-            Package.Opening = async (reader, package) =>
+            Package.Reading = async (reader, package) =>
             {
                 var readData = new byte[binaryData.Length];
                 await using var stream = reader.GetStream("test.bin");

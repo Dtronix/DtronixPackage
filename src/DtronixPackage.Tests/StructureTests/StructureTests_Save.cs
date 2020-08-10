@@ -60,7 +60,7 @@ namespace DtronixPackage.Tests.StructureTests
         public async Task WritesJsonFile()
         {
             _expectedContents.Add("DtronixPackage.Tests/test.json", "{\"Integer\":543210,\"Double\":1234.5678,\"String\":\"Test String\",\"Byte\":128,\"Bytes\":\"AAECAwQFBgcICQ==\",\"DateTimeOffset\":\"2020-08-03T17:42:58.0241586-04:00\"}");
-            Package.Saving = async (writer, package) =>
+            Package.Writing = async (writer, package) =>
             {
                 await writer.WriteJson("test.json", new TestJsonObject()
                 {
@@ -80,7 +80,7 @@ namespace DtronixPackage.Tests.StructureTests
         {
             var testString = "This is the test string.";
             _expectedContents.Add("DtronixPackage.Tests/test.txt", testString);
-            Package.Saving = async (writer, package) =>
+            Package.Writing = async (writer, package) =>
             {
                 await writer.Write("test.txt", testString);
             };
@@ -92,7 +92,7 @@ namespace DtronixPackage.Tests.StructureTests
         {
             var binaryData = new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 0};
             _expectedContents.Add("DtronixPackage.Tests/test.bin", binaryData);
-            Package.Saving = async (writer, package) =>
+            Package.Writing = async (writer, package) =>
             {
                 await using var memoryStream = new MemoryStream(binaryData);
                 await writer.Write("test.bin", memoryStream);

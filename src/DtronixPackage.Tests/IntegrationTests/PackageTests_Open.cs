@@ -57,7 +57,7 @@ namespace DtronixPackage.Tests.IntegrationTests
         {
             // Open, save & close the file.
             var file = new DynamicPackage(new Version(1,0), this, false, true);
-            file.Saving = async (writer, package) => await writer.Write(ContentFileName, SampleText);
+            file.Writing = async (writer, package) => await writer.Write(ContentFileName, SampleText);
             await file.Save(PackageFilename);
 
             var fileOpen = new DynamicPackage(new Version(1,0), this, false, false);
@@ -70,7 +70,7 @@ namespace DtronixPackage.Tests.IntegrationTests
         {
             // Open, save & close the file.
             var file = new DynamicPackage(new Version(1,0), this, false, true);
-            file.Saving = async (writer, package) => await writer.Write(ContentFileName, SampleText);
+            file.Writing = async (writer, package) => await writer.Write(ContentFileName, SampleText);
             await file.Save(PackageFilename);
 
             var fileOpen = new DynamicPackage(new Version(1,0), this, false, true);
@@ -237,9 +237,8 @@ namespace DtronixPackage.Tests.IntegrationTests
         {
             // Open, save & close the file.
             using (var file = new DynamicPackage(new Version(1, 0), this, false, true, "OtherApp"))
-            {
                 await file.Save(PackageFilename);
-            }
+            
 
             var fileOpen = new DynamicPackage(new Version(1,0), this, false, true);
 
@@ -252,6 +251,26 @@ namespace DtronixPackage.Tests.IntegrationTests
         {
             var package = await CreateAndSavePackage(null);
             Assert.ThrowsAsync<InvalidOperationException>(async () => await package.Open(PackageFilename));
+        }
+
+        [Test]
+        public async Task DoesNotNotifyChangesMadeToPackageContents()
+        {
+            await CreateAndClosePackage(null);
+
+            var fileOpen = new DynamicPackage(new Version(1, 0), this, false, true)
+            {
+                IsMonitorEnabled = true,
+                Reading = (reader, package) =>
+                {
+                    package.Content.MainText = "test";
+                    return Task.FromResult(true);
+                }
+            };
+
+            await fileOpen.Open(PackageFilename);
+
+            Assert.IsFalse(fileOpen.IsContentModified);
         }
     }
 }

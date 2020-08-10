@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace DtronixPackage.Tests.PackageManagerViewModelTests
 {
-    public class PackageManagerViewModelPackage : Package<EmptyPackageContent>
+    public class PackageManagerViewModelPackage : Package<TestPackageContent>
     {
         public Func<PackageReader, PackageManagerViewModelPackage, Task<bool>> Opening;
 
@@ -22,7 +22,7 @@ namespace DtronixPackage.Tests.PackageManagerViewModelTests
             Logger = new NLogLogger(nameof(PackageManagerViewModelPackage));
         }
 
-        protected override async Task<bool> OnOpen(PackageReader reader)
+        protected override async Task<bool> OnRead(PackageReader reader)
         {
             try
             {
@@ -39,7 +39,7 @@ namespace DtronixPackage.Tests.PackageManagerViewModelTests
             return false;
         }
 
-        protected override async Task OnSave(PackageWriter writer)
+        protected override async Task OnWrite(PackageWriter writer)
         {
             try
             {

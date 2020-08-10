@@ -215,13 +215,13 @@ namespace DtronixPackage
         /// </summary>
         /// <param name="reader">Package reader.</param>
         /// <returns>True of successful opening. False otherwise.</returns>
-        protected abstract Task<bool> OnOpen(PackageReader reader);
+        protected abstract Task<bool> OnRead(PackageReader reader);
 
         /// <summary>
         /// Method called when saving.  By default, will save the Content object to contents.json
         /// </summary>
         /// <param name="writer">Package writer.</param>
-        protected abstract Task OnSave(PackageWriter writer);
+        protected abstract Task OnWrite(PackageWriter writer);
 
         protected abstract string OnTempFilePathRequest(string fileName);
 
@@ -244,7 +244,7 @@ namespace DtronixPackage
                 throw new InvalidOperationException("Can not open package when a package is already open");
 
             await _packageOperationSemaphore.WaitAsync(cancellationToken);
-
+            var isMonitorEnabledOriginalValue = IsMonitorEnabled;
             PackageOpenResult returnValue = null;
 
             try
@@ -451,7 +451,13 @@ namespace DtronixPackage
 
                 var reader = new PackageReader(_openArchive, JsonSerializerOptions, _appName);
 
-                return returnValue = await OnOpen(reader)
+                // Disable monitor notifications while reading.
+                IsMonitorEnabled = false;
+
+                // Perform the overridden reading operations.
+                var openResult = await OnRead(reader);
+
+                return returnValue = openResult
                     ? PackageOpenResult.Success
                     : new PackageOpenResult(PackageOpenResultType.ReadingFailure, Version);
 
@@ -466,6 +472,9 @@ namespace DtronixPackage
                 // Do not fire the close event since it was not successfully opened in the first place.
                 if (returnValue != PackageOpenResult.Success)
                     CloseInternal(false);
+
+                // Restore the original monitor value.
+                IsMonitorEnabled = isMonitorEnabledOriginalValue;
 
                 _packageOperationSemaphore.Release();
             }
@@ -647,7 +656,7 @@ namespace DtronixPackage
                         await packageVersionStreamWriter.WriteAsync(PackageVersion.ToString());
                     }
 
-                    await OnSave(writer);
+                    await OnWrite(writer);
 
                     // Write package version file
                     await writer.Write("version", AppVersion.ToString());

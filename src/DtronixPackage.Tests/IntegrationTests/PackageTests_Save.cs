@@ -19,7 +19,7 @@ namespace DtronixPackage.Tests.IntegrationTests
             // Open, save & close the package.
             var package = new DynamicPackage(secondVersion, this, saveMissMatch, false)
             {
-                Saving = async (writer, package) =>
+                Writing = async (writer, package) =>
                 {
                     await writer.WriteJson(ContentFileName, SampleJson);
                 }

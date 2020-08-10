@@ -6,7 +6,7 @@ using DtronixPackage.Tests.IntegrationTests;
 namespace DtronixPackage.Tests
 {
 
-    public class DynamicPackage : DynamicPackage<EmptyPackageContent>
+    public class DynamicPackage : DynamicPackage<TestPackageContent>
     {
         public DynamicPackage(
             Version appVersion,
@@ -33,9 +33,9 @@ namespace DtronixPackage.Tests
     {
         private readonly IntegrationTestBase _integrationTest;
 
-        public Func<PackageReader, DynamicPackage<TContent>, Task<bool>> Opening;
+        public Func<PackageReader, DynamicPackage<TContent>, Task<bool>> Reading;
 
-        public Func<PackageWriter, DynamicPackage<TContent>, Task> Saving;
+        public Func<PackageWriter, DynamicPackage<TContent>, Task> Writing;
 
         public Func<string> TempPackagePathRequest;
 
@@ -66,14 +66,14 @@ namespace DtronixPackage.Tests
             Logger = new NLogLogger(nameof(DynamicPackage<TContent>));
         }
 
-        protected override async Task<bool> OnOpen(PackageReader reader)
+        protected override async Task<bool> OnRead(PackageReader reader)
         {
             try
             {
-                if (Opening == null)
+                if (Reading == null)
                     return true;
 
-                return await Opening(reader, this);
+                return await Reading(reader, this);
             }
             catch (Exception ex)
             {
@@ -87,12 +87,12 @@ namespace DtronixPackage.Tests
             }
         }
 
-        protected override async Task OnSave(PackageWriter writer)
+        protected override async Task OnWrite(PackageWriter writer)
         {
             try
             {
-                if(Saving != null)
-                    await Saving(writer, this);
+                if(Writing != null)
+                    await Writing(writer, this);
             }
             catch (Exception ex)
             {

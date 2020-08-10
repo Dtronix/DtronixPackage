@@ -148,7 +148,7 @@ namespace DtronixPackage.Tests.IntegrationTests
                 return Task.FromResult(true);
             }));
 
-            file.Opening += async (reader, package) =>
+            file.Reading += async (reader, package) =>
             {
                 var fileContents = await reader.ReadString(ContentFileName);
                 Assert.AreEqual(SampleText + SampleText, fileContents);
@@ -173,7 +173,7 @@ namespace DtronixPackage.Tests.IntegrationTests
                 return Task.FromResult(true);
             }));
 
-            file.Opening += (reader, package) =>
+            file.Reading += (reader, package) =>
             {
                 Assert.IsFalse(reader.FileExists(ContentFileName));
                 return Task.FromResult(true);

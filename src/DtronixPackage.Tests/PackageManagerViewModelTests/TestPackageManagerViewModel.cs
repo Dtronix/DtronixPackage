@@ -6,7 +6,7 @@ using DtronixPackage.ViewModel;
 
 namespace DtronixPackage.Tests.PackageManagerViewModelTests
 {
-    public class TestPackageManagerViewModel : PackageManagerViewModel<PackageManagerViewModelPackage, EmptyPackageContent>
+    public class TestPackageManagerViewModel : PackageManagerViewModel<PackageManagerViewModelPackage, TestPackageContent>
     {
         public Action<BrowseEventArgs> BrowsingOpen;
         public Action<BrowseEventArgs> BrowsingSave;
