@@ -14,9 +14,11 @@ namespace DtronixPackage.Tests.StructureTests
         
         public string PackageFilename { get; set; }
 
+
         [SetUp]
         public virtual Task Setup()
         {
+            
             PackageBuilder = new PackageBuilder("saves");
             Package = new DynamicPackage(new Version(1, 0, 0, 0), null, true, true);
             PackageFilename = Path.Combine("saves/", Guid.NewGuid() + ".file");

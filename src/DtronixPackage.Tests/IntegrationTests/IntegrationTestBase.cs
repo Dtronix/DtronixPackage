@@ -102,7 +102,7 @@ namespace DtronixPackage.Tests.IntegrationTests
 
         
         protected async Task<DynamicPackage> CreateAndSavePackage(
-            Func<DynamicPackage<EmptyPackageContent>, Task> onSave, 
+            Func<PackageWriter, DynamicPackage<EmptyPackageContent>, Task> onSave, 
             Version appVersion = null)
         {
 
@@ -118,19 +118,19 @@ namespace DtronixPackage.Tests.IntegrationTests
             return file;
         }
         
-        protected async Task CreateAndClosePackage(Func<DynamicPackage<EmptyPackageContent>, Task> onSave, Version appVersion = null)
+        protected async Task CreateAndClosePackage(Func<PackageWriter, DynamicPackage<EmptyPackageContent>, Task> onSave, Version appVersion = null)
         {
             var file = await CreateAndSavePackage(onSave, appVersion);
             file.Close();
         }
 
-        protected async Task OpenWaitForCompletionPackage(Func<DynamicPackage<EmptyPackageContent>, Task<bool>> onOpen)
+        protected async Task OpenWaitForCompletionPackage(Func<PackageReader, DynamicPackage<EmptyPackageContent>, Task<bool>> onOpen)
         {
             var file = new DynamicPackage(new Version(1,0), this, false, false)
             {
-                Opening = async dynamicFile =>
+                Opening = async (writer, dynamicFile) =>
                 {
-                    var result = await onOpen(dynamicFile);
+                    var result = await onOpen(writer, dynamicFile);
                     TestComplete.Set();
                     return result;
                 }
@@ -142,15 +142,17 @@ namespace DtronixPackage.Tests.IntegrationTests
             WaitTest(1000);
         }
 
-        protected async Task OpenWaitForCompletionPackage(Func<DynamicPackage, Task> onOpen)
+        protected async Task OpenWaitForCompletionPackage(Func<PackageReader, DynamicPackage<EmptyPackageContent>, Task> onOpen)
         {
-            var file = new DynamicPackage(new Version(1,0), this, false, false);
-            file.Opening = async argFile =>
+            var file = new DynamicPackage(new Version(1, 0), this, false, false)
             {
-                await onOpen.Invoke(file);
-                TestComplete.Set();
+                Opening = async (reader, package) =>
+                {
+                    await onOpen.Invoke(reader, package);
+                    TestComplete.Set();
 
-                return true;
+                    return true;
+                }
             };
 
             await file.Open(PackageFilename);

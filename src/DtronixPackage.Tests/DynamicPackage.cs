@@ -33,9 +33,9 @@ namespace DtronixPackage.Tests
     {
         private readonly IntegrationTestBase _integrationTest;
 
-        public Func<DynamicPackage<TContent>, Task<bool>> Opening;
+        public Func<PackageReader, DynamicPackage<TContent>, Task<bool>> Opening;
 
-        public Func<DynamicPackage<TContent>, Task> Saving;
+        public Func<PackageWriter, DynamicPackage<TContent>, Task> Saving;
 
         public Func<string> TempPackagePathRequest;
 
@@ -66,14 +66,14 @@ namespace DtronixPackage.Tests
             Logger = new NLogLogger(nameof(DynamicPackage<TContent>));
         }
 
-        protected override async Task<bool> OnOpen(bool isUpgrade)
+        protected override async Task<bool> OnOpen(PackageReader reader)
         {
             try
             {
                 if (Opening == null)
                     return true;
 
-                return await Opening(this);
+                return await Opening(reader, this);
             }
             catch (Exception ex)
             {
@@ -87,12 +87,12 @@ namespace DtronixPackage.Tests
             }
         }
 
-        protected override async Task OnSave()
+        protected override async Task OnSave(PackageWriter writer)
         {
             try
             {
                 if(Saving != null)
-                    await Saving(this);
+                    await Saving(writer, this);
             }
             catch (Exception ex)
             {

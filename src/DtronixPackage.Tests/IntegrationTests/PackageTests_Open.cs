@@ -10,7 +10,7 @@ namespace DtronixPackage.Tests.IntegrationTests
         [Test]
         public async Task FailsOnNewerVersionOfPackage()
         {
-            await CreateAndClosePackage(f => Task.CompletedTask, new Version(2, 0));
+            await CreateAndClosePackage((writer, package) => Task.CompletedTask, new Version(2, 0));
             var file = new DynamicPackageData(new Version(1,0), this);
             Assert.AreEqual(PackageOpenResultType.IncompatibleVersion, (await file.Open(PackageFilename)).Result);
         }
@@ -41,7 +41,7 @@ namespace DtronixPackage.Tests.IntegrationTests
         [Test]
         public async Task FailsOnLockedLockPackage()
         {
-            await CreateAndClosePackage(f => f.WriteString(ContentFileName, SampleText));
+            await CreateAndClosePackage((writer, package) => writer.Write(ContentFileName, SampleText));
 
             var fileStream = File.Create(PackageFilename + ".lock");
 
@@ -57,7 +57,7 @@ namespace DtronixPackage.Tests.IntegrationTests
         {
             // Open, save & close the file.
             var file = new DynamicPackage(new Version(1,0), this, false, true);
-            file.Saving = async fileArg => await file.WriteString(ContentFileName, SampleText);
+            file.Saving = async (writer, package) => await writer.Write(ContentFileName, SampleText);
             await file.Save(PackageFilename);
 
             var fileOpen = new DynamicPackage(new Version(1,0), this, false, false);
@@ -70,7 +70,7 @@ namespace DtronixPackage.Tests.IntegrationTests
         {
             // Open, save & close the file.
             var file = new DynamicPackage(new Version(1,0), this, false, true);
-            file.Saving = async fileArg => await file.WriteString(ContentFileName, SampleText);
+            file.Saving = async (writer, package) => await writer.Write(ContentFileName, SampleText);
             await file.Save(PackageFilename);
 
             var fileOpen = new DynamicPackage(new Version(1,0), this, false, true);
@@ -91,7 +91,7 @@ namespace DtronixPackage.Tests.IntegrationTests
         [Test]
         public async Task ReturnsSuccess()
         {
-            await CreateAndClosePackage(f => f.WriteString(ContentFileName, SampleText));
+            await CreateAndClosePackage((writer, package) => writer.Write(ContentFileName, SampleText));
 
             var file = new DynamicPackage(new Version(1,0), this, false, false);
             Assert.AreEqual(PackageOpenResult.Success, await file.Open(PackageFilename));
@@ -107,7 +107,7 @@ namespace DtronixPackage.Tests.IntegrationTests
         [Test]
         public async Task DoesNotOpenExclusiveLock()
         {
-            await CreateAndClosePackage(file => file.WriteString(ContentFileName, SampleText));
+            await CreateAndClosePackage((writer, package) => writer.Write(ContentFileName, SampleText));
             await using (File.OpenRead(PackageFilename))
             using(var file = new DynamicPackageData(new Version(1,0), this))
             {
@@ -141,7 +141,7 @@ namespace DtronixPackage.Tests.IntegrationTests
         [Test]
         public async Task OpensNonExclusiveLock()
         {
-            await CreateAndClosePackage(file => file.WriteString(ContentFileName, SampleText));
+            await CreateAndClosePackage((writer, package) => writer.Write(ContentFileName, SampleText));
             
             await using (new FileStream(PackageFilename, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             using(var file = new DynamicPackageData(new Version(1,0), this))
@@ -175,7 +175,7 @@ namespace DtronixPackage.Tests.IntegrationTests
         [Test]
         public async Task ReadOnly_DoesNotOpenExclusiveLock()
         {
-            await CreateAndClosePackage(file => file.WriteString(ContentFileName, SampleText));
+            await CreateAndClosePackage((writer, package) => writer.Write(ContentFileName, SampleText));
 
             await using (File.OpenWrite(PackageFilename))
             using(var file = new DynamicPackageData(new Version(1,0), this))
@@ -195,7 +195,7 @@ namespace DtronixPackage.Tests.IntegrationTests
         [Test]
         public async Task ReadOnly_OpensNonExclusiveLock()
         {
-            await CreateAndClosePackage(file => file.WriteString(ContentFileName, SampleText));
+            await CreateAndClosePackage((writer, package) => writer.Write(ContentFileName, SampleText));
             await using (File.OpenRead(PackageFilename))
             using(var file = new DynamicPackageData(new Version(1,0), this))
             {

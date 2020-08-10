@@ -10,11 +10,11 @@ namespace DtronixPackage.Tests.IntegrationTests
         [Test]
         public async Task WritesAndReadsJson()
         {
-            await CreateAndClosePackage(async file => await file.WriteJson(ContentFileName, SampleJson));
+            await CreateAndClosePackage(async (writer, file) => await writer.WriteJson(ContentFileName, SampleJson));
 
-            await OpenWaitForCompletionPackage(async file =>
+            await OpenWaitForCompletionPackage(async (reader, file) =>
             {
-                var readJson = await file.ReadJson<SampleJsonObj>(ContentFileName);
+                var readJson = await reader.ReadJson<SampleJsonObj>(ContentFileName);
                 Assert.AreEqual(SampleJson.Data, readJson.Data);
             });
         }
@@ -22,11 +22,11 @@ namespace DtronixPackage.Tests.IntegrationTests
         [Test]
         public async Task WritesAndReadsString()
         {
-            await CreateAndClosePackage(file => file.WriteString(ContentFileName, SampleText));
+            await CreateAndClosePackage((writer, file) => writer.Write(ContentFileName, SampleText));
 
-            await OpenWaitForCompletionPackage(async file =>
+            await OpenWaitForCompletionPackage(async (reader, file) =>
             {
-                Assert.AreEqual(SampleText, await file.ReadString(ContentFileName));
+                Assert.AreEqual(SampleText, await reader.ReadString(ContentFileName));
                 return true;
             });
         }
@@ -35,11 +35,11 @@ namespace DtronixPackage.Tests.IntegrationTests
         public async Task WritesAndReadsStream()
         {
             var saveStream = new MemoryStream(SampleByteArray);
-            await CreateAndClosePackage(async file => await file.WriteStream(ContentFileName, saveStream));
+            await CreateAndClosePackage(async (writer, file) => await writer.Write(ContentFileName, saveStream));
 
-            await OpenWaitForCompletionPackage(file =>
+            await OpenWaitForCompletionPackage((reader, file) =>
             {
-                var stream = file.GetStream(ContentFileName);
+                var stream = reader.GetStream(ContentFileName);
                 byte[] readBuffer = new byte[10];
                 stream.Read(readBuffer);
 

@@ -28,10 +28,8 @@ namespace DtronixPackage
         private readonly bool _preserveUpgrade;
         private readonly bool _useLockFile;
         private ZipArchive _openArchive;
-        private List<string> _saveFileList;
         private FileStream _lockFile;
         private FileStream _openPackageStream;
-        private ZipArchive _saveArchive;
 
         private string _lockFilePath;
         private readonly SemaphoreSlim _packageOperationSemaphore = new SemaphoreSlim(1, 1);
@@ -215,179 +213,17 @@ namespace DtronixPackage
         /// Method called when opening a package file and to run the application specific opening code.
         /// By default, will read content.json and copy the contents to the Content object.
         /// </summary>
-        /// <param name="isUpgrade"></param>
+        /// <param name="reader">Package reader.</param>
         /// <returns>True of successful opening. False otherwise.</returns>
-        protected abstract Task<bool> OnOpen(bool isUpgrade);
+        protected abstract Task<bool> OnOpen(PackageReader reader);
 
         /// <summary>
         /// Method called when saving.  By default, will save the Content object to contents.json
         /// </summary>
-        protected abstract Task OnSave();
+        /// <param name="writer">Package writer.</param>
+        protected abstract Task OnSave(PackageWriter writer);
 
         protected abstract string OnTempFilePathRequest(string fileName);
-
-        /// <summary>
-        /// Gets or creates a file inside this package.  Must close after usage.
-        /// </summary>
-        /// <param name="path">Path to the file inside the package.  Case sensitive.</param>
-        /// <returns>Stream on existing file.  Null otherwise.</returns>
-        protected internal Stream GetStream(string path)
-        {
-            var file = _openArchive.Entries.FirstOrDefault(f => f.FullName == _appName + "/" + path);
-            return file?.Open();
-        }
-
-        /// <summary>
-        /// Reads a string from the specified path inside the package.
-        /// </summary>
-        /// <param name="path">Path to the file inside the zip.  Case sensitive.</param>
-        /// <returns>Stream on existing file.  Null otherwise.</returns>
-        protected internal async Task<string> ReadString(string path)
-        {
-            await using var stream = GetStream(path);
-            using var sr = new StreamReader(stream);
-            return await sr.ReadToEndAsync();
-        }
-
-        /// <summary>
-        /// Reads a JSON document from the specified path inside the package.
-        /// </summary>
-        /// <typeparam name="T">Type of JSON file to convert into.</typeparam>
-        /// <param name="path">Path to open.</param>
-        /// <returns>Decoded JSON object.</returns>
-        protected internal async ValueTask<T> ReadJson<T>(string path)
-        {
-            await using var stream = GetStream(path);
-            return await JsonSerializer.DeserializeAsync<T>(stream, JsonSerializerOptions);
-        }
-
-        /// <summary>
-        /// Open a JSON file inside the current application directory.
-        /// </summary>
-        /// <param name="path">Path to open.</param>
-        /// <returns>Decoded JSON object.</returns>
-        protected internal Task<JsonDocument> ReadJsonDocument(string path)
-        {
-            using var stream = GetStream(path);
-            return JsonDocument.ParseAsync(stream);
-        }
-
-        /// <summary>
-        /// Checks to see if a file exists inside the package.
-        /// </summary>
-        /// <param name="path">Path to find.</param>
-        /// <returns>True if the file exists, false otherwise.</returns>
-        protected internal bool FileExists(string path)
-        {
-            path = _appName + "/" + path;
-            return _openArchive.Entries.Any(e => e.FullName == path);
-        }
-
-        /// <summary>
-        /// Returns all the file paths to files inside a package directory.
-        /// </summary>
-        /// <param name="path">Base path of the directory to search inside.</param>
-        /// <returns>All paths to the files contained inside a package directory.</returns>
-        protected internal string[] DirectoryContents(string path)
-        {
-            var baseDir = _appName + "/";
-            return _openArchive.Entries
-                .Where(f => f.FullName.StartsWith(baseDir + path))
-                .Select(e => e.FullName.Replace(baseDir, ""))
-                .ToArray();
-        }
-
-        /// <summary>
-        /// Writes an object to a JSON file at the specified path inside the package.
-        /// </summary>
-        /// <param name="path"></param>
-        /// <param name="json"></param>
-        protected internal async Task WriteJson<T>(string path, T json)
-        {
-            await using var entityStream = CreateEntityStream(path, true);
-            await JsonSerializer.SerializeAsync(entityStream, json, JsonSerializerOptions);
-        }
-
-        /// <summary>
-        /// Writes a string to a text file at the specified path inside the package.
-        /// </summary>
-        /// <param name="path">Path to save.</param>
-        /// <param name="text">String of data to save.</param>
-        protected internal async Task WriteString(string path, string text)
-        {
-            await using var entityStream = CreateEntityStream(path, true);
-            await using var writer = new StreamWriter(entityStream);
-
-            await writer.WriteAsync(text);
-            await writer.FlushAsync();
-        }
-
-        /// <summary>
-        /// Writes a stream to a file at the specified path inside the package.
-        /// </summary>
-        /// <param name="path">Path to save.</param>
-        /// <param name="stream">Stream of data to save.</param>
-        protected internal async Task WriteStream(string path, Stream stream)
-        {
-            await using var entityStream = CreateEntityStream(path, true);
-            await stream.CopyToAsync(entityStream);
-        }
-
-        /// <summary>
-        /// Returns a stream to the file at the specified location. Blocks other writes until stream is closed.
-        /// </summary>
-        /// <param name="path">Path to save.</param>
-        /// <returns>Writable stream.</returns>
-        protected Stream WriteGetStream(string path)
-        {
-            return CreateEntityStream(path, true);
-        }
-
-        /// <summary>
-        /// Saves a stream of data into the current application directory.
-        /// </summary>
-        /// <param name="path">Path to save.</param>
-        /// <param name="encoder">Encoder data to save.</param>
-        protected internal void WriteBitmapEncoder(string path, BitmapEncoder encoder)
-        {
-            // No compression for images.
-            using var entityStream = CreateEntityStream(path, true, CompressionLevel.NoCompression);
-            using var ms = new MemoryStream();
-
-            // Save to the memory stream
-            encoder.Save(ms);
-            ms.Position = 0;
-
-            // Copy to the zip entity.
-            ms.CopyTo(entityStream);
-        }
-
-        /// <summary>
-        /// Helper function to create a new entity at the specified path and return a stream.
-        /// Stream must be closed.
-        /// </summary>
-        /// <param name="path">Path to the entity.  Note, this prefixes the application name to the path.</param>
-        /// <param name="prefixApplicationName">
-        /// Set to true to have the application name be prefixed to all the passed paths.
-        /// </param>
-        /// <param name="compressionLevel">Compression level for the entity</param>
-        /// <returns>Stream to the entity.  Must be closed.</returns>
-        private Stream CreateEntityStream(string path,
-            bool prefixApplicationName,
-            CompressionLevel compressionLevel = CompressionLevel.Optimal)
-        {
-            if (_saveFileList == null)
-                throw new Exception("Can not access save functions while outside of a OnSave call");
-
-            var entityPath = prefixApplicationName
-                ? _appName + "/" + path
-                : path;
-
-            var entity = _saveArchive.CreateEntry(entityPath, compressionLevel);
-            _saveFileList.Add(entity.FullName);
-
-            return entity.Open();
-        }
 
         /// <summary>
         /// Opens a package.
@@ -490,8 +326,8 @@ namespace DtronixPackage
                     }
                     else
                     {
-                        using var reader = new StreamReader(packageVersionEntry.Open());
-                        _openPackageVersion = new Version(await reader.ReadToEndAsync());
+                        using var packageVersionReader = new StreamReader(packageVersionEntry.Open());
+                        _openPackageVersion = new Version(await packageVersionReader.ReadToEndAsync());
                     }
 
                     // Read the version information in the application directory.
@@ -510,10 +346,8 @@ namespace DtronixPackage
                             return returnValue = new PackageOpenResult(PackageOpenResultType.Corrupted);
                     }
 
-                    using (var reader = new StreamReader(versionEntity.Open()))
-                    {
-                        Version = new Version(await reader.ReadToEndAsync());
-                    }
+                    using (var appVersionReader = new StreamReader(versionEntity.Open()))
+                        Version = new Version(await appVersionReader.ReadToEndAsync());
 
                     // Don't allow opening of newer packages on older applications.
                     if (AppVersion < Version)
@@ -611,7 +445,9 @@ namespace DtronixPackage
                 OpenTime = DateTime.Now;
                 AutoSavePath = null;
 
-                return returnValue = await OnOpen(Version != AppVersion)
+                var reader = new PackageReader(_openArchive, JsonSerializerOptions, _appName);
+
+                return returnValue = await OnOpen(reader)
                     ? PackageOpenResult.Success
                     : new PackageOpenResult(PackageOpenResultType.ReadingFailure, Version);
 
@@ -724,7 +560,7 @@ namespace DtronixPackage
 
             Logger?.ConditionalTrace("Acquired _packageOperationSemaphore");
 
-            _saveFileList = new List<string>();
+
 
             // Determine if we have changed save the save path location since the last save.
             if (path != SavePath)
@@ -778,10 +614,6 @@ namespace DtronixPackage
             {
                 return new PackageSaveResult(PackageSaveResultType.Failure, e);
             }
-            finally
-            {
-                _saveFileList = null;
-            }
         }
 
         /// <summary>
@@ -800,19 +632,21 @@ namespace DtronixPackage
                 // TODO: Reuse existing archive when saving from a read-only package.  Prevents duplication of the MS.
                 var saveArchiveMemoryStream = new MemoryStream();
 
-                using (_saveArchive = new ZipArchive(saveArchiveMemoryStream, ZipArchiveMode.Create, true))
+                using (var archive = new ZipArchive(saveArchiveMemoryStream, ZipArchiveMode.Create, true))
                 {
+                    var writer = new PackageWriter(archive, JsonSerializerOptions, _appName);
+
                     // Write application version file
-                    await using (var packageVersionStream = CreateEntityStream("version", false))
+                    await using (var packageVersionStream = writer.CreateEntityStream("version", false))
                     {
-                        await using var writer = new StreamWriter(packageVersionStream);
-                        await writer.WriteAsync(PackageVersion.ToString());
+                        await using var packageVersionStreamWriter = new StreamWriter(packageVersionStream);
+                        await packageVersionStreamWriter.WriteAsync(PackageVersion.ToString());
                     }
 
-                    await OnSave();
+                    await OnSave(writer);
 
                     // Write package version file
-                    await WriteString("version", AppVersion.ToString());
+                    await writer.Write("version", AppVersion.ToString());
 
                     var log = new ChangelogEntry
                         (autoSave ? ChangelogEntryType.AutoSave : ChangelogEntryType.Save,
@@ -824,7 +658,7 @@ namespace DtronixPackage
                     _changelog.Add(log);
 
                     // Write the save log.
-                    await WriteJson("changelog.json", _changelog);
+                    await writer.WriteJson("changelog.json", _changelog);
 
                     // If this is an auto save, we do not want to continually add auto save logs.
                     if (autoSave)
@@ -834,10 +668,10 @@ namespace DtronixPackage
                     {
                         foreach (var openedArchiveEntry in _openArchive.Entries)
                         {
-                            if (_saveFileList.Contains(openedArchiveEntry.FullName))
+                            if (writer.FileList.Contains(openedArchiveEntry.FullName))
                                 continue;
 
-                            var saveEntry = _saveArchive.CreateEntry(openedArchiveEntry.FullName);
+                            var saveEntry = archive.CreateEntry(openedArchiveEntry.FullName);
 
                             // Copy the last write times to be accurate.
                             saveEntry.LastWriteTime = openedArchiveEntry.LastWriteTime;
@@ -850,8 +684,6 @@ namespace DtronixPackage
                     }
                     
                 }
-
-                _saveArchive = null;
 
                 // Only save a backup package if we are not performing an auto save.
                 if (SaveBackupPackage && !autoSave)
@@ -969,9 +801,6 @@ namespace DtronixPackage
                 }
 
                 Logger?.ConditionalTrace($"InternalSave return: {returnValue}");
-
-                _saveFileList = null;
-
                 Logger?.ConditionalTrace("Released _packageOperationSemaphore");
                 _packageOperationSemaphore.Release();
             }
@@ -1043,7 +872,6 @@ namespace DtronixPackage
                 await _packageOperationSemaphore.WaitAsync();
                 Logger?.ConditionalTrace("Acquired _packageOperationSemaphore");
 
-                _saveFileList = new List<string>();
                 var saveResult = await SaveInternal(true);
 
                 if (saveResult == PackageSaveResult.Success)
@@ -1224,9 +1052,6 @@ namespace DtronixPackage
             _openArchive = null;
             _openPackageStream?.Dispose();
             _openPackageStream = null;
-            _saveArchive?.Dispose();
-            _saveArchive = null;
-            _saveFileList = null;
             _lockFile?.Close();
             _lockFile = null;
             _openPackageStream?.Close();
