@@ -274,11 +274,14 @@ namespace DtronixPackage.ViewModel
             // If the file is locked, give the option to open read-only.
             if (result.IsSuccessful == false)
             {
-                if (result.Result == PackageOpenResultType.IncompatibleVersion)
+                if (result.Result == PackageOpenResultType.IncompatibleVersion
+                 || result.Result == PackageOpenResultType.IncompatiblePackageVersion)
                 {
                     var message = new PackageMessageEventArgs(
-                        PackageMessageEventArgs.MessageType.OK,
-                        $"Can not open file.\r\n\r\nOpened file version is {result.OpenVersion} while application is version {openFile.AppVersion} ",
+                        PackageMessageEventArgs.MessageType.OK, 
+                        "Can not open file.\r\n\r\n" + (result.Result == PackageOpenResultType.IncompatibleVersion 
+                            ? $" Opened file version is {result.OpenVersion} while application is version {openFile.AppVersion}."
+                            : $"Package version {result.OpenVersion} is incompatible."),
                         "Version Incompatible",
                         MessageBoxImage.Exclamation);
 

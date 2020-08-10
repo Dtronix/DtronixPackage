@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <UseWPF>true</UseWPF>
-    <Version>1.1.0</Version>
+    <Version>1.2.0</Version>
     <Authors>DJGosnell</Authors>
     <Company>Dtronix</Company>
     <Copyright>2020</Copyright>

@@ -330,6 +330,10 @@ namespace DtronixPackage
                         _openPackageVersion = new Version(await packageVersionReader.ReadToEndAsync());
                     }
 
+                    // Don't allow opening if the package file was saved with a more recent version of the packager.
+                    if (PackageVersion < _openPackageVersion)
+                        return returnValue = new PackageOpenResult(PackageOpenResultType.IncompatiblePackageVersion, PackageVersion);
+
                     // Read the version information in the application directory.
                     var versionEntity = _openArchive.Entries.FirstOrDefault(f => f.FullName == _appName + "/version");
 
