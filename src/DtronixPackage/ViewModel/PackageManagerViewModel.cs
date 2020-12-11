@@ -430,6 +430,11 @@ namespace DtronixPackage.ViewModel
             return SaveAsInternal(Package);
         }
 
+        protected void OnShowMessage(PackageMessageEventArgs eventArgs)
+        {
+            ShowMessage?.Invoke(this, eventArgs);
+        }
+
         private void InvokeOnDispatcher(Action action)
         {
             if (_appDispatcher == null)
