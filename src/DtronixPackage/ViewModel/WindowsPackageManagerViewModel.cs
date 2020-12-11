@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using Microsoft.Win32;
@@ -123,15 +125,34 @@ namespace DtronixPackage.ViewModel
             return result == true;
         }
 
-        public async void OnWidowClosing(object sender, CancelEventArgs e)
+        public virtual async void OnWidowClosing(object sender, CancelEventArgs e)
         {
             if (Package == null || e.Cancel)
                 return;
 
-            // Attempt to close if any package is open.
-            if (!await TryClose())
-                e.Cancel = true;
-        }
+            if (!(sender is Window window))
+                throw new ArgumentException("Passed sender must be a Window.");
 
+            // Cancel the closing event to ensure the save will always go through.
+            e.Cancel = true;
+            window.IsEnabled = false;
+
+            // Caller returns and window stays open
+            await Task.Yield();
+
+            // Attempt to close if any package is open.
+            var allowClose = await TryClose();
+
+            if (allowClose)
+            {
+                // Remove the event since we are closing the window now.
+                window.Closing -= OnWidowClosing;
+                window.Close();
+            }
+
+            // doesn't matter if it's closed
+            window.IsEnabled = true;
+
+        }
     }
 }
