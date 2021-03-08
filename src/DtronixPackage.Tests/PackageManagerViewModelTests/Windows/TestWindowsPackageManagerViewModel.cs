@@ -4,7 +4,7 @@ using DtronixPackage.ViewModel;
 
 namespace DtronixPackage.Tests.PackageManagerViewModelTests.Windows
 {
-    public class TestWindowsPackageManagerViewModel : WindowsPackageManagerViewModel<PackageManagerViewModelPackage, EmptyPackageContent>
+    public class TestWindowsPackageManagerViewModel : WindowsPackageManagerViewModel<PackageManagerViewModelPackage, TestPackageContent>
     {
         public Action<BrowseEventArgs> BrowsingOpen;
         public Action<BrowseEventArgs> BrowsingSave;
@@ -29,8 +29,8 @@ namespace DtronixPackage.Tests.PackageManagerViewModelTests.Windows
 
         private void OnCreated(object sender, PackageEventArgs<PackageManagerViewModelPackage> e)
         {
-            e.Package.Saving = PackageSaving;
-            e.Package.Opening = PackageOpening;
+            //e.Package.Saving = PackageSaving;
+            //e.Package.Opening = PackageOpening;
         }
 
         protected override bool BrowseOpenFile(out string path, out bool openReadOnly)

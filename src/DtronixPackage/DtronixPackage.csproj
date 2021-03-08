@@ -1,12 +1,13 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <PackageOutputPath>$(ProjectDir)..\..\artifacts\</PackageOutputPath>
+    <TargetFramework>net5.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>
     <Version>1.2.0</Version>
     <Authors>DJGosnell</Authors>
     <Company>Dtronix</Company>
-    <Copyright>2020</Copyright>
+    <Copyright>2021</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/Dtronix/DtronixPackage</PackageProjectUrl>
     <RepositoryUrl>https://github.com/Dtronix/DtronixPackage</RepositoryUrl>
@@ -14,10 +15,6 @@
     <RepositoryType>git</RepositoryType>
     <PackageTags>save,package,data,management,json,netcore</PackageTags>
     <PackageIcon>icon.png</PackageIcon>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
 
   <ItemGroup>

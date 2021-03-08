@@ -30,7 +30,7 @@ namespace DtronixPackage.Tests.PackageManagerViewModelTests.Windows
 
             await ViewModel.Save();
 
-            ViewModel.Package.Saving = async package =>
+            ViewModel.Package.Saving = async (writer, package) =>
             {
                 Console.WriteLine("Saving started.");
                 await Task.Delay(200);
@@ -69,7 +69,7 @@ namespace DtronixPackage.Tests.PackageManagerViewModelTests.Windows
 
             await ViewModel.NewPackageCreated.Task;
 
-            ViewModel.Package.Saving = async package =>
+            ViewModel.Package.Saving = async (writer, package) =>
             {
                 Console.WriteLine("Saving started.");
                 await Task.Delay(200);
