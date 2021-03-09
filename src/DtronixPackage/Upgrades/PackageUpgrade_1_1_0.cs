@@ -56,7 +56,7 @@ namespace DtronixPackage.Upgrades
             AutoSave = 4
         }
 
-        public PackageUpgrade_1_1_0() : base(new Version(1, 1, 0))
+        public PackageUpgrade_1_1_0() : base(new Version(1, 1, 0), null)
         {
         }
 

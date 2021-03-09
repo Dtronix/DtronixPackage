@@ -9,9 +9,9 @@ namespace DtronixPackage.Tests.PackageManagerViewModelTests.Windows
         public Action<BrowseEventArgs> BrowsingOpen;
         public Action<BrowseEventArgs> BrowsingSave;
 
-        public Func<PackageManagerViewModelPackage, Task<bool>> PackageOpening;
+        public Func<PackageReader, PackageManagerViewModelPackage, Task<bool>> PackageOpening;
 
-        public Func<PackageManagerViewModelPackage, Task> PackageSaving;
+        public Func<PackageWriter, PackageManagerViewModelPackage, Task> PackageSaving;
 
         public TaskCompletionSource<bool> NewPackageCreated = new TaskCompletionSource<bool>();
 
@@ -29,8 +29,8 @@ namespace DtronixPackage.Tests.PackageManagerViewModelTests.Windows
 
         private void OnCreated(object sender, PackageEventArgs<PackageManagerViewModelPackage> e)
         {
-            //e.Package.Saving = PackageSaving;
-            //e.Package.Opening = PackageOpening;
+            e.Package.Saving = PackageSaving;
+            e.Package.Opening = PackageOpening;
         }
 
         protected override bool BrowseOpenFile(out string path, out bool openReadOnly)

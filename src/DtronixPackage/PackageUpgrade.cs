@@ -6,11 +6,13 @@ namespace DtronixPackage
 {
     public abstract class PackageUpgrade
     {
-        public Version Version { get; }
+        public Version DependentPackageVersion { get; }
+        public Version AppVersion { get; }
 
-        protected PackageUpgrade(Version version)
+        protected PackageUpgrade(Version dependentPackageVersion, Version appVersion)
         {
-            Version = version;
+            DependentPackageVersion = dependentPackageVersion;
+            AppVersion = appVersion;
         }
 
         public Task<bool> Upgrade(ZipArchive archive)
