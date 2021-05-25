@@ -197,9 +197,16 @@ namespace DtronixPackage.ViewModel
         /// <summary>
         /// Implements the execution of <see cref="OpenCommand" />
         /// </summary>
-        private void OpenCommand_Execute()
+        private async void OpenCommand_Execute()
         {
-            _ = Open();
+            try
+            {
+                await Open();
+            }
+            catch
+            {
+                // Ignore
+            }
         }
 
         /// <summary>
