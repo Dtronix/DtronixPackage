@@ -16,7 +16,7 @@ namespace DtronixPackage.Upgrades
     [SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Local")]
     [SuppressMessage("ReSharper", "InconsistentNaming")]
     [SuppressMessage("ReSharper", "ClassNeverInstantiated.Local")]
-    public class PackageUpgrade_1_1_0 : PackageUpgrade
+    internal class PackageUpgrade_1_1_0 : InternalPackageUpgrade
     {
         internal class SaveLogEntry {
             public string Username { get; set; } 
@@ -56,7 +56,7 @@ namespace DtronixPackage.Upgrades
             AutoSave = 4
         }
 
-        public PackageUpgrade_1_1_0() : base(new Version(1, 1, 0), null)
+        public PackageUpgrade_1_1_0() : base(new Version(1, 1, 0))
         {
         }
 

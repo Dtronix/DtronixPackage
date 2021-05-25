@@ -1,36 +1,106 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace DtronixPackage
 {
-    public class UpgradeManager
+    /// <summary>
+    /// Handles ordering and truncating of upgrades to be applied to packages.
+    /// </summary>
+    internal class UpgradeManager : IEnumerable<PackageUpgrade>
     {
-        internal readonly List<PackageUpgrade> OrderedUpgrades = new();
+        private readonly Version _currentInternalPackageVersion;
+        private readonly Version _currentAppPackageVersion;
 
+        internal readonly SortedList<Version, SortedList<Version, PackageUpgrade>> OrderedUpgrades = new();
+
+        private readonly List<Version> _applicationUpgradeVersions = new();
+
+        public UpgradeManager(Version currentInternalPackageVersion, Version currentAppPackageVersion)
+        {
+            _currentInternalPackageVersion = currentInternalPackageVersion;
+            _currentAppPackageVersion = currentAppPackageVersion;
+        }
+
+        /// <summary>
+        /// Adds the upgrade into the list of upgrades to apply.
+        /// </summary>
+        /// <param name="upgrade">Upgrade to add.</param>
         public void Add(PackageUpgrade upgrade)
         {
-            if (OrderedUpgrades.Count == 0)
+            void AddAppUpgrade(SortedList<Version, PackageUpgrade> upgradeList, ApplicationPackageUpgrade upg)
             {
-                OrderedUpgrades.Add(upgrade);
-                return;
+                if (upg.AppVersion <= _currentAppPackageVersion)
+                    return;
+
+                if (_applicationUpgradeVersions.Contains(upg.AppVersion))
+                    throw new ArgumentException(
+                        $"Duplicate application version added for version {upg.AppVersion}");
+
+                _applicationUpgradeVersions.Add(upg.AppVersion);
+
+                upgradeList.Add(upg.AppVersion, upgrade);
             }
 
-            var count = OrderedUpgrades.Count;
-            PackageUpgrade previous;
-            for (int i = 0; i < count; i++)
+            void AddPackageUpgrade(SortedList<Version, PackageUpgrade> upgradeList, InternalPackageUpgrade upg)
             {
-                var current = OrderedUpgrades[i];
-                if (upgrade.DependentPackageVersion >= current.DependentPackageVersion)
+                if (upg.DependentPackageVersion <= _currentInternalPackageVersion)
+                    return;
+
+                upgradeList.Add(new Version(), upg);
+            }
+
+            if (OrderedUpgrades.ContainsKey(upgrade.DependentPackageVersion))
+            {
+                switch (upgrade)
                 {
-                    // Find app version location.
+                    case ApplicationPackageUpgrade appUpgrade:
+                        AddAppUpgrade(OrderedUpgrades[appUpgrade.DependentPackageVersion], appUpgrade);
+                        break;
+
+                    case InternalPackageUpgrade intUpgrade:
+                        AddPackageUpgrade(OrderedUpgrades[intUpgrade.DependentPackageVersion], intUpgrade);
+                        break;
+
+                    default:
+                        throw new ArgumentException("Unknown upgrade package passed.", nameof(upgrade));
                 }
-
-                previous = current;
             }
+            else
+            {
+                var upgradeList = new SortedList<Version, PackageUpgrade>();
+                switch (upgrade)
+                {
+                    case ApplicationPackageUpgrade appUpgrade:
+                        AddAppUpgrade(upgradeList, appUpgrade);
+                        OrderedUpgrades.Add(appUpgrade.DependentPackageVersion, upgradeList);
+                        break;
 
+                    case InternalPackageUpgrade intUpgrade:
+                        AddPackageUpgrade(upgradeList, intUpgrade);
+                        OrderedUpgrades.Add(intUpgrade.DependentPackageVersion, upgradeList);
+                        break;
+
+                    default:
+                        throw new ArgumentException("Unknown upgrade package passed.", nameof(upgrade));
+                }
+            }
+        }
+
+        public IEnumerator<PackageUpgrade> GetEnumerator()
+        {
+            foreach (var packageVersions in OrderedUpgrades)
+            {
+                foreach (var upgrades in packageVersions.Value)
+                {
+                    yield return upgrades.Value;
+                }
+            }
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
         }
     }
 }

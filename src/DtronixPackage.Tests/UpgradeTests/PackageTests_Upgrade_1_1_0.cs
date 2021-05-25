@@ -12,7 +12,7 @@ namespace DtronixPackage.Tests.UpgradeTests
 {
     [SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Local")]
     [SuppressMessage("ReSharper", "InconsistentNaming")]
-    public class PackageTests_Upgrade_1_1_0 : UpgradeTestBase<PackageUpgrade_1_1_0>
+    internal class PackageTests_Upgrade_1_1_0 : UpgradeTestBase<PackageUpgrade_1_1_0>
     {
         
         protected override async Task<ZipArchive> CreatePackage()
