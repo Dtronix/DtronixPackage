@@ -152,25 +152,46 @@ namespace DtronixPackage.ViewModel
         /// <summary>
         /// Implements the execution of <see cref="SaveCommand" />
         /// </summary>
-        private void SaveCommand_Execute()
+        private async void SaveCommand_Execute()
         {
-            _ = Save();
+            try
+            {
+                await Save();
+            }
+            catch
+            {
+                // Ignore
+            }
         }
 
         /// <summary>
         /// Implements the execution of <see cref="SaveAsCommand" />
         /// </summary>
-        private void SaveAsCommand_Execute()
+        private async void SaveAsCommand_Execute()
         {
-            _ = SaveAs();
+            try
+            {
+                await SaveAs();
+            }
+            catch
+            {
+                // Ignore
+            }
         }
 
         /// <summary>
         /// Implements the execution of <see cref="NewCommand" />
         /// </summary>
-        private void NewCommand_Execute()
+        private async void NewCommand_Execute()
         {
-            _ = New();
+            try
+            {
+                await New();
+            }
+            catch
+            {
+                // Ignore
+            }
         }
 
         /// <summary>
@@ -184,9 +205,16 @@ namespace DtronixPackage.ViewModel
         /// <summary>
         /// Implements the execution of <see cref="CloseCommand" />
         /// </summary>
-        private void CloseCommand_Execute()
+        private async void CloseCommand_Execute()
         {
-            _ = TryClose();
+            try
+            {
+                await TryClose();
+            }
+            catch
+            {
+                // Ignore
+            }
         }
 
         /// <summary>
@@ -277,6 +305,19 @@ namespace DtronixPackage.ViewModel
 
                     ShowMessage?.Invoke(this, message);
                     
+                    return false;
+                }
+
+                if (result.Result == PackageOpenResultType.UpgradeFailure)
+                {
+                    var message = new PackageMessageEventArgs(
+                        PackageMessageEventArgs.MessageType.OK,
+                        $"Can't open file. Failed upgrading file.\r\n\r\n{result.Exception.Message}",
+                        "Error Opening",
+                        MessageBoxImage.Exclamation);
+
+                    ShowMessage?.Invoke(this, message);
+
                     return false;
                 }
 
