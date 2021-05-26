@@ -305,7 +305,7 @@ namespace DtronixPackage.ViewModel
                     var message = new PackageMessageEventArgs(
                         PackageMessageEventArgs.MessageType.OK, 
                         "Can not open file.\r\n\r\n" + (result.Result == PackageOpenResultType.IncompatibleVersion 
-                            ? $" Opened file version is {result.OpenVersion} while application is version {openFile.AppVersion}."
+                            ? $" Opened file version is {result.OpenVersion} while application is version {openFile.CurrentAppVersion}."
                             : $"Package version {result.OpenVersion} is incompatible."),
                         "Version Incompatible",
                         MessageBoxImage.Exclamation);

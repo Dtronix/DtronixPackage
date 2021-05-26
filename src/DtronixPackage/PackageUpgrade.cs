@@ -32,7 +32,7 @@ namespace DtronixPackage
         }
     }
 
-    public abstract class InternalPackageUpgrade : PackageUpgrade
+    internal abstract class InternalPackageUpgrade : PackageUpgrade
     {
         protected InternalPackageUpgrade(Version version)
             : base(version)

@@ -121,17 +121,17 @@ namespace DtronixPackage
                     if (packageVersionEntry == null)
                     {
                         // If the package version is not set, this is an older file which will need to be upgraded appropriately.
-                        _openPackageVersion = new Version(0, 0, 0);
+                        _openPkgVersion = new Version(0, 0, 0);
                     }
                     else
                     {
                         using var packageVersionReader = new StreamReader(packageVersionEntry.Open());
-                        _openPackageVersion = new Version(await packageVersionReader.ReadToEndAsync());
+                        _openPkgVersion = new Version(await packageVersionReader.ReadToEndAsync());
                     }
 
                     // Don't allow opening if the package file was saved with a more recent version of the packager.
-                    if (PackageVersion < _openPackageVersion)
-                        return returnValue = new PackageOpenResult(PackageOpenResultType.IncompatiblePackageVersion, PackageVersion);
+                    if (CurrentPkgVersion < _openPkgVersion)
+                        return returnValue = new PackageOpenResult(PackageOpenResultType.IncompatiblePackageVersion, CurrentPkgVersion);
 
                     // Read the version information in the application directory.
                     var versionEntity = _openArchive.Entries.FirstOrDefault(f => f.FullName == _appName + "/version");
@@ -150,30 +150,23 @@ namespace DtronixPackage
                     }
 
                     using (var appVersionReader = new StreamReader(versionEntity.Open()))
-                        Version = new Version(await appVersionReader.ReadToEndAsync());
+                        PackageAppVersion = new Version(await appVersionReader.ReadToEndAsync());
 
                     // Don't allow opening of newer packages on older applications.
-                    if (AppVersion < Version)
-                        return returnValue = new PackageOpenResult(PackageOpenResultType.IncompatibleVersion, Version);
+                    if (CurrentAppVersion < PackageAppVersion)
+                        return returnValue = new PackageOpenResult(PackageOpenResultType.IncompatibleVersion, PackageAppVersion);
                 }
                 catch (Exception e)
                 {
-                    return returnValue = new PackageOpenResult(PackageOpenResultType.Corrupted, e, Version);
+                    return returnValue = new PackageOpenResult(PackageOpenResultType.Corrupted, e, PackageAppVersion);
                 }
 
-                // Perform any required package upgrades.
-                if (_openPackageVersion < PackageVersion)
+                var upgradeManager = new UpgradeManager(_openPkgVersion, PackageAppVersion);
+
+                // If this package version is older than the current version, add the upgrades to the manager.
+                if (CurrentPkgVersion > _openPkgVersion)
                 {
-                    var packageUpgrades = new PackageUpgrade[]
-                    {
-                        new PackageUpgrade_1_1_0(),
-                    };
-
-                    var upgradeResult = await ApplyUpgrades(packageUpgrades, true, _openPackageVersion);
-
-                    // If the result is not null, the upgrade failed.
-                    if (upgradeResult != null)
-                        return returnValue = upgradeResult;
+                    upgradeManager.Add(new PackageUpgrade_1_1_0());
                 }
 
                 // Try to open the modified log file. It may not exist in older versions.
@@ -197,41 +190,47 @@ namespace DtronixPackage
                     }
                     catch (Exception e)
                     {
-                        Logger?.Error(e, "Could not parse save log.");
+                        Logger?.Error(e, "Could not read save log.");
                         _changelog.Clear();
                     }
                 }
 
                 // Perform upgrades at this time.
-                if (AppVersion > Version)
+                if (CurrentAppVersion > PackageAppVersion)
                 {
-                    // "Renames" existing contents of this application's directory to a backup directory 
-                    if (_preserveUpgrade)
+                    foreach (var packageUpgrade in Upgrades)
+                        upgradeManager.Add(packageUpgrade);
+                }
+
+                // "Renames" existing contents of this application's directory to a backup directory 
+                if (_preserveUpgrade)
+                {
+                    var entries = _openArchive.Entries.ToArray();
+                    foreach (var entry in entries)
                     {
-                        var entries = _openArchive.Entries.ToArray();
-                        foreach (var entry in entries)
-                        {
-                            // If there is a version miss-match, save the original files in a modified
-                            // directory to retrieve in-case of corruption.
-                            if (!entry.FullName.StartsWith(_appName + "/"))
-                                continue;
+                        // If there is a version miss-match, save the original files in a modified
+                        // directory to retrieve in-case of corruption.
+                        if (!entry.FullName.StartsWith(_appName + "/"))
+                            continue;
 
-                            // Renames all the sub-files if there was a version mis-match on open.
-                            var newName = _appName + $"-backup-{Version}/{entry.FullName}";
+                        // Renames all the sub-files if there was a version mis-match on open.
+                        var newName = _appName + $"-backup-{PackageAppVersion}/{entry.FullName}";
 
-                            var saveEntry = _openArchive.CreateEntry(newName);
+                        var saveEntry = _openArchive.CreateEntry(newName);
 
-                            // Copy the last write times to be accurate.
-                            saveEntry.LastWriteTime = entry.LastWriteTime;
+                        // Copy the last write times to be accurate.
+                        saveEntry.LastWriteTime = entry.LastWriteTime;
 
-                            // Copy the streams.
-                            await using var openedArchiveStream = entry.Open();
-                            await using var saveEntryStream = saveEntry.Open();
-                            await openedArchiveStream.CopyToAsync(saveEntryStream, cancellationToken);
-                        }
+                        // Copy the streams.
+                        await using var openedArchiveStream = entry.Open();
+                        await using var saveEntryStream = saveEntry.Open();
+                        await openedArchiveStream.CopyToAsync(saveEntryStream, cancellationToken);
                     }
+                }
 
-                    var upgradeResult = await ApplyUpgrades(Upgrades, false, Version);
+                if (upgradeManager.HasUpgrades)
+                {
+                    var upgradeResult = await ApplyUpgrades(upgradeManager);
 
                     // If the result is not null, the upgrade failed.
                     if (upgradeResult != null)
@@ -242,7 +241,7 @@ namespace DtronixPackage
                 // and if it failed, stop opening.
                 if (!openReadOnly && _useLockFile && !await SetLockFile())
                 {
-                    return returnValue = new PackageOpenResult(PackageOpenResultType.Locked, Version);
+                    return returnValue = new PackageOpenResult(PackageOpenResultType.Locked, PackageAppVersion);
                 }
 
                 OpenTime = DateTime.Now;
@@ -258,12 +257,12 @@ namespace DtronixPackage
 
                 return returnValue = openResult
                     ? PackageOpenResult.Success
-                    : new PackageOpenResult(PackageOpenResultType.ReadingFailure, Version);
+                    : new PackageOpenResult(PackageOpenResultType.ReadingFailure, PackageAppVersion);
 
             }
             catch (Exception e)
             {
-                return returnValue = new PackageOpenResult(PackageOpenResultType.UnknownFailure, e, Version);
+                return returnValue = new PackageOpenResult(PackageOpenResultType.UnknownFailure, e, PackageAppVersion);
             }
             finally
             {
@@ -280,44 +279,41 @@ namespace DtronixPackage
         }
 
 
-        private async Task<PackageOpenResult> ApplyUpgrades(
-            IList<PackageUpgrade> upgrades,
-            bool packageUpgrade,
-            Version compareVersion)
+        private async Task<PackageOpenResult> ApplyUpgrades(IEnumerable<PackageUpgrade> upgrades)
         {
-            var currentVersion = packageUpgrade ? _openPackageVersion : Version;
-
-            foreach (var upgrade in upgrades.Where(upgrade => upgrade.DependentPackageVersion > compareVersion))
+            foreach (var upgrade in upgrades)
             {
+                var isPackageUpgrade = upgrade is InternalPackageUpgrade;
+                var applicationUpgrade = upgrade as ApplicationPackageUpgrade;
+                var currentVersion = isPackageUpgrade ? _openPkgVersion : PackageAppVersion;
+
                 try
                 {
                     // Attempt to perform the upgrade
                     if (!await upgrade.Upgrade(_openArchive))
                     {
                         // Upgrade soft failed, log it and notify the opener.
-                        Logger?.Error($"Unable to perform{(packageUpgrade ? " package" : " application")} upgrade of package to version {upgrade.DependentPackageVersion}.");
-                        return new PackageOpenResult(PackageOpenResultType.UpgradeFailure, Version);
+                        Logger?.Error($"Unable to perform{(isPackageUpgrade ? " package" : " application")} upgrade of package to version {upgrade.DependentPackageVersion}.");
+                        return new PackageOpenResult(PackageOpenResultType.UpgradeFailure, PackageAppVersion);
                     }
 
-                    _changelog.Add(new ChangelogEntry(packageUpgrade
+                    _changelog.Add(new ChangelogEntry(isPackageUpgrade
                         ? ChangelogEntryType.PackageUpgrade
                         : ChangelogEntryType.ApplicationUpgrade,
                         Username,
                         ComputerName,
                         CurrentDateTimeOffset)
                     {
-                        Note = packageUpgrade
+                        Note = isPackageUpgrade
                             ? $"Package upgrade from {currentVersion} to {upgrade.DependentPackageVersion}"
-                            : $"Application upgrade from {currentVersion} to {upgrade.DependentPackageVersion}"
+                            : $"Application upgrade from {currentVersion} to {applicationUpgrade!.AppVersion}"
                     });
-
-                    currentVersion = upgrade.DependentPackageVersion;
                 }
                 catch (Exception e)
                 {
                     // Upgrade hard failed.
-                    Logger?.Error(e, $"Unable to perform{(packageUpgrade ? " package" : " application")} upgrade of package to version {upgrade.DependentPackageVersion}.");
-                    return new PackageOpenResult(PackageOpenResultType.UpgradeFailure, e, Version);
+                    Logger?.Error(e, $"Unable to perform{(isPackageUpgrade ? " package" : " application")} upgrade of package to version {upgrade.DependentPackageVersion}.");
+                    return new PackageOpenResult(PackageOpenResultType.UpgradeFailure, e, PackageAppVersion);
                 }
 
                 // Since we did perform an upgrade, set set that the package has been changed.

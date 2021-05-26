@@ -9,17 +9,19 @@ namespace DtronixPackage
     /// </summary>
     internal class UpgradeManager : IEnumerable<PackageUpgrade>
     {
-        private readonly Version _currentInternalPackageVersion;
-        private readonly Version _currentAppPackageVersion;
+        private readonly Version _openPackageVersion;
+        private readonly Version _openAppPackageVersion;
 
         internal readonly SortedList<Version, SortedList<Version, PackageUpgrade>> OrderedUpgrades = new();
 
         private readonly List<Version> _applicationUpgradeVersions = new();
 
-        public UpgradeManager(Version currentInternalPackageVersion, Version currentAppPackageVersion)
+        public bool HasUpgrades { get; private set; }
+
+        public UpgradeManager(Version openPackageVersion, Version openAppPackageVersion)
         {
-            _currentInternalPackageVersion = currentInternalPackageVersion;
-            _currentAppPackageVersion = currentAppPackageVersion;
+            _openPackageVersion = openPackageVersion;
+            _openAppPackageVersion = openAppPackageVersion;
         }
 
         /// <summary>
@@ -30,7 +32,7 @@ namespace DtronixPackage
         {
             void AddAppUpgrade(SortedList<Version, PackageUpgrade> upgradeList, ApplicationPackageUpgrade upg)
             {
-                if (upg.AppVersion <= _currentAppPackageVersion)
+                if (upg.AppVersion <= _openAppPackageVersion)
                     return;
 
                 if (_applicationUpgradeVersions.Contains(upg.AppVersion))
@@ -40,14 +42,16 @@ namespace DtronixPackage
                 _applicationUpgradeVersions.Add(upg.AppVersion);
 
                 upgradeList.Add(upg.AppVersion, upgrade);
+                HasUpgrades = true;
             }
 
             void AddPackageUpgrade(SortedList<Version, PackageUpgrade> upgradeList, InternalPackageUpgrade upg)
             {
-                if (upg.DependentPackageVersion <= _currentInternalPackageVersion)
+                if (upg.DependentPackageVersion <= _openPackageVersion)
                     return;
 
                 upgradeList.Add(new Version(), upg);
+                HasUpgrades = true;
             }
 
             if (OrderedUpgrades.ContainsKey(upgrade.DependentPackageVersion))

@@ -40,12 +40,12 @@ namespace DtronixPackage
         private int _autoSaveDueTime = 60 * 1000;
         private bool _disposed;
         private bool _isContentModified;
-        private Version _openPackageVersion;
+        private Version _openPkgVersion;
 
         protected static ILogger Logger;
 
-        internal static readonly Version PackageVersion 
-            = typeof(Package<TContent>).Assembly.GetName().Version;
+        internal static readonly Version CurrentPkgVersion 
+            = typeof(IPackage).Assembly.GetName().Version;
 
         /// <summary>
         /// Called upon closure of a package.
@@ -65,12 +65,12 @@ namespace DtronixPackage
         /// <summary>
         /// Opened package application version.
         /// </summary>
-        public Version Version { get; private set; }
+        public Version PackageAppVersion { get; private set; }
 
         /// <summary>
         /// Current version of the application.
         /// </summary>
-        public Version AppVersion { get; }
+        public Version CurrentAppVersion { get; }
         
         /// <summary>
         /// If set to true, a ".BAK" package will be created with the previously saved package.
@@ -173,7 +173,7 @@ namespace DtronixPackage
         /// Creates & configures an instance of DtronixPackage.
         /// </summary>
         /// <param name="appName"></param>
-        /// <param name="appVersion">
+        /// <param name="currentAppVersion">
         /// Currently running application's version.
         /// </param>
         /// <param name="preserveUpgrade">
@@ -185,10 +185,10 @@ namespace DtronixPackage
         /// If set to true and a lockfile exists "filename.ext.lock", then the opening process is aborted and
         /// an opening error is thrown.
         /// </param>
-        protected Package(string appName, Version appVersion, bool preserveUpgrade, bool useLockFile)
+        protected Package(string appName, Version currentAppVersion, bool preserveUpgrade, bool useLockFile)
         {
             _appName = appName;
-            AppVersion = appVersion;
+            CurrentAppVersion = currentAppVersion;
             _preserveUpgrade = preserveUpgrade;
             _useLockFile = useLockFile;
 
@@ -397,7 +397,7 @@ namespace DtronixPackage
             _openPackageStream = null;
             _lockFilePath = null;
             _changelog.Clear();
-            _openPackageVersion = null;
+            _openPkgVersion = null;
             foreach (var registeredListener in _monitorListeners)
                 registeredListener.Value.Dispose();
 
@@ -405,7 +405,7 @@ namespace DtronixPackage
             Content.Clear(this);
             MonitorRegister(Content);
 
-            Version = null;
+            PackageAppVersion = null;
             SavePath = null;
 
             IsReadOnly = false;

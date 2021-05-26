@@ -115,13 +115,13 @@ namespace DtronixPackage
                     await using (var packageVersionStream = writer.CreateEntityStream("version", false))
                     {
                         await using var packageVersionStreamWriter = new StreamWriter(packageVersionStream);
-                        await packageVersionStreamWriter.WriteAsync(PackageVersion.ToString());
+                        await packageVersionStreamWriter.WriteAsync(CurrentPkgVersion.ToString());
                     }
 
                     await OnWrite(writer);
 
                     // Write package version file
-                    await writer.Write("version", AppVersion.ToString());
+                    await writer.Write("version", CurrentAppVersion.ToString());
 
                     var log = new ChangelogEntry
                         (autoSave ? ChangelogEntryType.AutoSave : ChangelogEntryType.Save,
@@ -253,7 +253,7 @@ namespace DtronixPackage
                 // Save the new zip archive stream to the opened archive stream.
                 _openArchive = new ZipArchive(saveArchiveMemoryStream, ZipArchiveMode.Read, true);
 
-                Version = AppVersion;
+                PackageAppVersion = CurrentAppVersion;
 
                 return returnValue = PackageSaveResult.Success;
             }

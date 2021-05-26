@@ -25,12 +25,12 @@ namespace DtronixPackage
         /// <summary>
         /// Opened package application version.
         /// </summary>
-        Version Version { get; }
+        Version PackageAppVersion { get; }
 
         /// <summary>
         /// Current version of the application.
         /// </summary>
-        Version AppVersion { get; }
+        Version CurrentAppVersion { get; }
 
         /// <summary>
         /// If set to true, a ".BAK" package will be created with the previously saved package.

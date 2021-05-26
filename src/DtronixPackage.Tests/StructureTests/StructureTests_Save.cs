@@ -28,7 +28,7 @@ namespace DtronixPackage.Tests.StructureTests
 
             _expectedContents = new Dictionary<string, object>
             {
-                {"version", DynamicPackage.PackageVersion},
+                {"version", DynamicPackage.CurrentPkgVersion},
                 {"DtronixPackage.Tests/version", "1.0.0.0"},
                 {"DtronixPackage.Tests/changelog.json", _changelogEntry},
             };

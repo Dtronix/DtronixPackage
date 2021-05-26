@@ -9,21 +9,21 @@ namespace DtronixPackage.Tests
     public class DynamicPackage : DynamicPackage<TestPackageContent>
     {
         public DynamicPackage(
-            Version appVersion,
+            Version currentAppVersion,
             IntegrationTestBase integrationTest,
             bool preserveUpgrade,
             bool useLockFile)
-            : base(appVersion, integrationTest, preserveUpgrade, useLockFile)
+            : base(currentAppVersion, integrationTest, preserveUpgrade, useLockFile)
         {
         }
 
         public DynamicPackage(
-            Version appVersion,
+            Version currentAppVersion,
             IntegrationTestBase integrationTest,
             bool preserveUpgrade,
             bool useLockFile,
             string appName)
-            : base(appVersion, integrationTest, preserveUpgrade, useLockFile, appName)
+            : base(currentAppVersion, integrationTest, preserveUpgrade, useLockFile, appName)
         {
         }
     }
@@ -46,21 +46,21 @@ namespace DtronixPackage.Tests
         internal override DateTimeOffset CurrentDateTimeOffset => DateTimeOffsetOverride ?? DateTimeOffset.Now;
 
         public DynamicPackage(
-            Version appVersion,
+            Version currentAppVersion,
             IntegrationTestBase integrationTest, 
             bool preserveUpgrade,
             bool useLockFile) 
-            : this(appVersion, integrationTest, preserveUpgrade, useLockFile, "DtronixPackage.Tests")
+            : this(currentAppVersion, integrationTest, preserveUpgrade, useLockFile, "DtronixPackage.Tests")
         {
         }
 
         public DynamicPackage(
-            Version appVersion,
+            Version currentAppVersion,
             IntegrationTestBase integrationTest, 
             bool preserveUpgrade,
             bool useLockFile,
             string appName) 
-            : base(appName, appVersion, preserveUpgrade, useLockFile)
+            : base(appName, currentAppVersion, preserveUpgrade, useLockFile)
         {
             _integrationTest = integrationTest;
             Logger = new NLogLogger(nameof(DynamicPackage<TContent>));
