@@ -202,34 +202,34 @@ namespace DtronixPackage
                         upgradeManager.Add(packageUpgrade);
                 }
 
-                // "Renames" existing contents of this application's directory to a backup directory 
-                if (_preserveUpgrade)
-                {
-                    var entries = _openArchive.Entries.ToArray();
-                    foreach (var entry in entries)
-                    {
-                        // If there is a version miss-match, save the original files in a modified
-                        // directory to retrieve in-case of corruption.
-                        if (!entry.FullName.StartsWith(_appName + "/"))
-                            continue;
-
-                        // Renames all the sub-files if there was a version mis-match on open.
-                        var newName = _appName + $"-backup-{PackageAppVersion}/{entry.FullName}";
-
-                        var saveEntry = _openArchive.CreateEntry(newName);
-
-                        // Copy the last write times to be accurate.
-                        saveEntry.LastWriteTime = entry.LastWriteTime;
-
-                        // Copy the streams.
-                        await using var openedArchiveStream = entry.Open();
-                        await using var saveEntryStream = saveEntry.Open();
-                        await openedArchiveStream.CopyToAsync(saveEntryStream, cancellationToken);
-                    }
-                }
-
                 if (upgradeManager.HasUpgrades)
                 {
+                    // "Renames" existing contents of this application's directory to a backup directory 
+                    if (_preserveUpgrade)
+                    {
+                        var entries = _openArchive.Entries.ToArray();
+                        foreach (var entry in entries)
+                        {
+                            // If there is a version miss-match, save the original files in a modified
+                            // directory to retrieve in-case of corruption.
+                            if (!entry.FullName.StartsWith(_appName + "/"))
+                                continue;
+
+                            // Renames all the sub-files if there was a version mis-match on open.
+                            var newName = _appName + $"-backup-{PackageAppVersion}/{entry.FullName}";
+
+                            var saveEntry = _openArchive.CreateEntry(newName);
+
+                            // Copy the last write times to be accurate.
+                            saveEntry.LastWriteTime = entry.LastWriteTime;
+
+                            // Copy the streams.
+                            await using var openedArchiveStream = entry.Open();
+                            await using var saveEntryStream = saveEntry.Open();
+                            await openedArchiveStream.CopyToAsync(saveEntryStream, cancellationToken);
+                        }
+                    }
+
                     var upgradeResult = await ApplyUpgrades(upgradeManager);
 
                     // If the result is not null, the upgrade failed.
