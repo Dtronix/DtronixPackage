@@ -47,23 +47,23 @@ namespace DtronixPackage
 
             void AddPackageUpgrade(SortedList<Version, PackageUpgrade> upgradeList, InternalPackageUpgrade upg)
             {
-                if (upg.DependentPackageVersion <= _openPackageVersion)
+                if (upg.DependentPackageVersion.Version <= _openPackageVersion)
                     return;
 
                 upgradeList.Add(new Version(), upg);
                 HasUpgrades = true;
             }
 
-            if (OrderedUpgrades.ContainsKey(upgrade.DependentPackageVersion))
+            if (OrderedUpgrades.ContainsKey(upgrade.DependentPackageVersion.Version))
             {
                 switch (upgrade)
                 {
                     case ApplicationPackageUpgrade appUpgrade:
-                        AddAppUpgrade(OrderedUpgrades[appUpgrade.DependentPackageVersion], appUpgrade);
+                        AddAppUpgrade(OrderedUpgrades[appUpgrade.DependentPackageVersion.Version], appUpgrade);
                         break;
 
                     case InternalPackageUpgrade intUpgrade:
-                        AddPackageUpgrade(OrderedUpgrades[intUpgrade.DependentPackageVersion], intUpgrade);
+                        AddPackageUpgrade(OrderedUpgrades[intUpgrade.DependentPackageVersion.Version], intUpgrade);
                         break;
 
                     default:
@@ -77,12 +77,12 @@ namespace DtronixPackage
                 {
                     case ApplicationPackageUpgrade appUpgrade:
                         AddAppUpgrade(upgradeList, appUpgrade);
-                        OrderedUpgrades.Add(appUpgrade.DependentPackageVersion, upgradeList);
+                        OrderedUpgrades.Add(appUpgrade.DependentPackageVersion.Version, upgradeList);
                         break;
 
                     case InternalPackageUpgrade intUpgrade:
                         AddPackageUpgrade(upgradeList, intUpgrade);
-                        OrderedUpgrades.Add(intUpgrade.DependentPackageVersion, upgradeList);
+                        OrderedUpgrades.Add(intUpgrade.DependentPackageVersion.Version, upgradeList);
                         break;
 
                     default:

@@ -6,9 +6,9 @@ namespace DtronixPackage
 {
     public abstract class PackageUpgrade
     {
-        public Version DependentPackageVersion { get; }
+        public PackageUpgradeVersion DependentPackageVersion { get; }
 
-        internal PackageUpgrade(Version dependentPackageVersion)
+        internal PackageUpgrade(PackageUpgradeVersion dependentPackageVersion)
         {
             DependentPackageVersion = dependentPackageVersion;
         }
@@ -25,7 +25,7 @@ namespace DtronixPackage
     {
         public Version AppVersion { get; }
 
-        protected ApplicationPackageUpgrade(Version dependentPackageVersion, Version appVersion)
+        protected ApplicationPackageUpgrade(PackageUpgradeVersion dependentPackageVersion, Version appVersion)
             : base(dependentPackageVersion)
         {
             AppVersion = appVersion;
@@ -34,7 +34,7 @@ namespace DtronixPackage
 
     internal abstract class InternalPackageUpgrade : PackageUpgrade
     {
-        protected InternalPackageUpgrade(Version version)
+        protected InternalPackageUpgrade(PackageUpgradeVersion version)
             : base(version)
         {
         }

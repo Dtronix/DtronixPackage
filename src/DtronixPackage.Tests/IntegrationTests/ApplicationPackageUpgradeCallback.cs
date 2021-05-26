@@ -11,7 +11,7 @@ namespace DtronixPackage.Tests.IntegrationTests
         private readonly Func<DtronixPackageCallbackUpgradeCallbackEventArgs, Task<bool>> Upgrading;
 
         public ApplicationPackageUpgradeCallback(
-            Version packageDependentVersion,
+            PackageUpgradeVersion packageDependentVersion,
             Version appVersion, 
             Func<DtronixPackageCallbackUpgradeCallbackEventArgs, Task<bool>> upgrading)
             : base(packageDependentVersion, appVersion)
@@ -20,7 +20,7 @@ namespace DtronixPackage.Tests.IntegrationTests
         }
 
         public ApplicationPackageUpgradeCallback(
-            Version packageDependentVersion,
+            PackageUpgradeVersion packageDependentVersion,
             Version appVersion,
             Func<DtronixPackageCallbackUpgradeCallbackEventArgs, Task> upgrading)
             : base(packageDependentVersion, appVersion)

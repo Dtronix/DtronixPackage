@@ -22,14 +22,14 @@ namespace DtronixPackage.Tests.UpgradeTests
         {
             var upgradeManager = new UpgradeManager(new Version(), new Version())
             {
-                new VersionedInterUpgrade(new Version(0, 1)),
-                new VersionedInterUpgrade(new Version(0, 2)),
-                new VersionedInterUpgrade(new Version(0, 3)),
-                new VersionedInterUpgrade(new Version(0, 4)),
-                new VersionedInterUpgrade(new Version(0, 8)),
-                new VersionedInterUpgrade(new Version(0, 7)),
-                new VersionedInterUpgrade(new Version(0, 6)),
-                new VersionedInterUpgrade(new Version(0, 5))
+                new VersionedInterUpgrade(new PackageUpgradeVersion(0, 1)),
+                new VersionedInterUpgrade(new PackageUpgradeVersion(0, 2)),
+                new VersionedInterUpgrade(new PackageUpgradeVersion(0, 3)),
+                new VersionedInterUpgrade(new PackageUpgradeVersion(0, 4)),
+                new VersionedInterUpgrade(new PackageUpgradeVersion(0, 8)),
+                new VersionedInterUpgrade(new PackageUpgradeVersion(0, 7)),
+                new VersionedInterUpgrade(new PackageUpgradeVersion(0, 6)),
+                new VersionedInterUpgrade(new PackageUpgradeVersion(0, 5))
             };
 
 
@@ -49,12 +49,12 @@ namespace DtronixPackage.Tests.UpgradeTests
         {
             var upgradeManager = new UpgradeManager(new Version(), new Version())
             {
-                new VersionedAppUpgrade(new Version(0, 1), new Version(0, 3)),
-                new VersionedAppUpgrade(new Version(0, 2), new Version(0, 1)),
-                new VersionedAppUpgrade(new Version(0, 1), new Version(0, 4)),
-                new VersionedAppUpgrade(new Version(0, 2), new Version(0, 2)),
-                new VersionedInterUpgrade(new Version(0, 1)),
-                new VersionedInterUpgrade(new Version(0, 3))
+                new VersionedAppUpgrade(new PackageUpgradeVersion(0, 1), new Version(0, 3)),
+                new VersionedAppUpgrade(new PackageUpgradeVersion(0, 2), new Version(0, 1)),
+                new VersionedAppUpgrade(new PackageUpgradeVersion(0, 1), new Version(0, 4)),
+                new VersionedAppUpgrade(new PackageUpgradeVersion(0, 2), new Version(0, 2)),
+                new VersionedInterUpgrade(new PackageUpgradeVersion(0, 1)),
+                new VersionedInterUpgrade(new PackageUpgradeVersion(0, 3))
             };
 
             Assert.AreEqual(0, upgradeManager.OrderedUpgrades[new Version(0, 2)].IndexOfKey(new Version(0, 1)));
@@ -69,10 +69,10 @@ namespace DtronixPackage.Tests.UpgradeTests
         {
             var upgradeManager = new UpgradeManager(new Version(), new Version())
             {
-                new VersionedInterUpgrade(new Version(0, 1)),
-                new VersionedInterUpgrade(new Version(0, 3)),
-                new VersionedAppUpgrade(new Version(0, 2), new Version(0, 1)),
-                new VersionedAppUpgrade(new Version(0, 2), new Version(0, 2))
+                new VersionedInterUpgrade(new PackageUpgradeVersion(0, 1)),
+                new VersionedInterUpgrade(new PackageUpgradeVersion(0, 3)),
+                new VersionedAppUpgrade(new PackageUpgradeVersion(0, 2), new Version(0, 1)),
+                new VersionedAppUpgrade(new PackageUpgradeVersion(0, 2), new Version(0, 2))
             };
 
             Assert.AreEqual(0, upgradeManager.OrderedUpgrades[new Version(0, 2)].IndexOfKey(new Version(0, 1)));
@@ -84,11 +84,11 @@ namespace DtronixPackage.Tests.UpgradeTests
         {
             var upgradeManager = new UpgradeManager(new Version(), new Version())
             {
-                new VersionedAppUpgrade(new Version(0, 4), new Version(0, 5)),
-                new VersionedAppUpgrade(new Version(0, 3), new Version(0, 3)),
-                new VersionedAppUpgrade(new Version(0, 2), new Version(0, 2)),
-                new VersionedAppUpgrade(new Version(0, 3), new Version(0, 4)),
-                new VersionedAppUpgrade(new Version(0, 1), new Version(0, 1))
+                new VersionedAppUpgrade(new PackageUpgradeVersion(0, 4), new Version(0, 5)),
+                new VersionedAppUpgrade(new PackageUpgradeVersion(0, 3), new Version(0, 3)),
+                new VersionedAppUpgrade(new PackageUpgradeVersion(0, 2), new Version(0, 2)),
+                new VersionedAppUpgrade(new PackageUpgradeVersion(0, 3), new Version(0, 4)),
+                new VersionedAppUpgrade(new PackageUpgradeVersion(0, 1), new Version(0, 1))
             };
 
             VersionedAppUpgrade previous = null;
@@ -111,8 +111,8 @@ namespace DtronixPackage.Tests.UpgradeTests
             {
                 new UpgradeManager(new Version(), new Version())
                 {
-                    new VersionedInterUpgrade(new Version(0, 1)),
-                    new VersionedInterUpgrade(new Version(0, 1))
+                    new VersionedInterUpgrade(new PackageUpgradeVersion(0, 1)),
+                    new VersionedInterUpgrade(new PackageUpgradeVersion(0, 1))
                 };
             });
         }
@@ -124,8 +124,8 @@ namespace DtronixPackage.Tests.UpgradeTests
             {
                 new UpgradeManager(new Version(), new Version())
                 {
-                    new VersionedAppUpgrade(new Version(0, 2), new Version(0, 1)),
-                    new VersionedAppUpgrade(new Version(0, 2), new Version(0, 1))
+                    new VersionedAppUpgrade(new PackageUpgradeVersion(0, 2), new Version(0, 1)),
+                    new VersionedAppUpgrade(new PackageUpgradeVersion(0, 2), new Version(0, 1))
                 };
             });
         }
@@ -137,8 +137,8 @@ namespace DtronixPackage.Tests.UpgradeTests
             {
                 new UpgradeManager(new Version(), new Version())
                 {
-                    new VersionedAppUpgrade(new Version(0, 1), new Version(0, 1)),
-                    new VersionedAppUpgrade(new Version(0, 2), new Version(0, 1))
+                    new VersionedAppUpgrade(new PackageUpgradeVersion(0, 1), new Version(0, 1)),
+                    new VersionedAppUpgrade(new PackageUpgradeVersion(0, 2), new Version(0, 1))
                 };
             });
         }
@@ -148,11 +148,11 @@ namespace DtronixPackage.Tests.UpgradeTests
         {
             var upgradeManager = new UpgradeManager(new Version(), new Version())
             {
-                new VersionedInterUpgrade(new Version(0, 1)),
-                new VersionedAppUpgrade(new Version(0, 1), new Version(0, 1)),
-                new VersionedAppUpgrade(new Version(0, 1), new Version(0, 2)),
-                new VersionedAppUpgrade(new Version(0, 1), new Version(0, 4)),
-                new VersionedAppUpgrade(new Version(0, 1), new Version(0, 3))
+                new VersionedInterUpgrade(new PackageUpgradeVersion(0, 1)),
+                new VersionedAppUpgrade(new PackageUpgradeVersion(0, 1), new Version(0, 1)),
+                new VersionedAppUpgrade(new PackageUpgradeVersion(0, 1), new Version(0, 2)),
+                new VersionedAppUpgrade(new PackageUpgradeVersion(0, 1), new Version(0, 4)),
+                new VersionedAppUpgrade(new PackageUpgradeVersion(0, 1), new Version(0, 3))
             };
 
             Assert.AreEqual(1, upgradeManager.OrderedUpgrades[new Version(0, 1)].IndexOfKey(new Version(0, 1)));
@@ -167,8 +167,8 @@ namespace DtronixPackage.Tests.UpgradeTests
         {
             var upgradeManager = new UpgradeManager(new Version(0, 1), new Version())
             {
-                new VersionedInterUpgrade(new Version(0, 1)),
-                new VersionedInterUpgrade(new Version(0, 3))
+                new VersionedInterUpgrade(new PackageUpgradeVersion(0, 1)),
+                new VersionedInterUpgrade(new PackageUpgradeVersion(0, 3))
             };
 
             Assert.AreEqual(1, upgradeManager.Count());
@@ -179,8 +179,8 @@ namespace DtronixPackage.Tests.UpgradeTests
         {
             var upgradeManager = new UpgradeManager(new Version(), new Version(0, 2))
             {
-                new VersionedAppUpgrade(new Version(0, 1), new Version(0, 2)),
-                new VersionedAppUpgrade(new Version(0, 1), new Version(0, 4))
+                new VersionedAppUpgrade(new PackageUpgradeVersion(0, 1), new Version(0, 2)),
+                new VersionedAppUpgrade(new PackageUpgradeVersion(0, 1), new Version(0, 4))
             };
 
             Assert.AreEqual(1, upgradeManager.Count());
@@ -188,7 +188,7 @@ namespace DtronixPackage.Tests.UpgradeTests
 
         private class VersionedInterUpgrade : InternalPackageUpgrade
         {
-            public VersionedInterUpgrade(Version version)
+            public VersionedInterUpgrade(PackageUpgradeVersion version)
                 : base(version)
             {
             }
@@ -206,7 +206,7 @@ namespace DtronixPackage.Tests.UpgradeTests
 
         private class VersionedAppUpgrade : ApplicationPackageUpgrade
         {
-            public VersionedAppUpgrade(Version dependentPackageVersion, Version appVersion)
+            public VersionedAppUpgrade(PackageUpgradeVersion dependentPackageVersion, Version appVersion)
                 : base(dependentPackageVersion, appVersion)
             {
             }
