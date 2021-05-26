@@ -163,10 +163,14 @@ namespace DtronixPackage
 
                 var upgradeManager = new UpgradeManager(_openPkgVersion, PackageAppVersion);
 
+                // Set to true below if either the package or application versions changed.
+                var versionChanged = false;
+
                 // If this package version is older than the current version, add the upgrades to the manager.
                 if (CurrentPkgVersion > _openPkgVersion)
                 {
                     upgradeManager.Add(new PackageUpgrade_1_1_0());
+                    versionChanged = true;
                 }
 
                 // Try to open the modified log file. It may not exist in older versions.
@@ -200,36 +204,38 @@ namespace DtronixPackage
                 {
                     foreach (var packageUpgrade in Upgrades)
                         upgradeManager.Add(packageUpgrade);
+
+                    versionChanged = true;
+                }
+
+                // "Renames" existing contents of this application's directory to a backup directory
+                if (_preserveUpgrade && versionChanged)
+                {
+                    var entries = _openArchive.Entries.ToArray();
+                    foreach (var entry in entries)
+                    {
+                        // If there is a version miss-match, save the original files in a modified
+                        // directory to retrieve in-case of corruption.
+                        if (!entry.FullName.StartsWith(_appName + "/"))
+                            continue;
+
+                        // Renames all the sub-files if there was a version mis-match on open.
+                        var newName = _appName + $"-backup-{PackageAppVersion}/{entry.FullName}";
+
+                        var saveEntry = _openArchive.CreateEntry(newName);
+
+                        // Copy the last write times to be accurate.
+                        saveEntry.LastWriteTime = entry.LastWriteTime;
+
+                        // Copy the streams.
+                        await using var openedArchiveStream = entry.Open();
+                        await using var saveEntryStream = saveEntry.Open();
+                        await openedArchiveStream.CopyToAsync(saveEntryStream, cancellationToken);
+                    }
                 }
 
                 if (upgradeManager.HasUpgrades)
                 {
-                    // "Renames" existing contents of this application's directory to a backup directory 
-                    if (_preserveUpgrade)
-                    {
-                        var entries = _openArchive.Entries.ToArray();
-                        foreach (var entry in entries)
-                        {
-                            // If there is a version miss-match, save the original files in a modified
-                            // directory to retrieve in-case of corruption.
-                            if (!entry.FullName.StartsWith(_appName + "/"))
-                                continue;
-
-                            // Renames all the sub-files if there was a version mis-match on open.
-                            var newName = _appName + $"-backup-{PackageAppVersion}/{entry.FullName}";
-
-                            var saveEntry = _openArchive.CreateEntry(newName);
-
-                            // Copy the last write times to be accurate.
-                            saveEntry.LastWriteTime = entry.LastWriteTime;
-
-                            // Copy the streams.
-                            await using var openedArchiveStream = entry.Open();
-                            await using var saveEntryStream = saveEntry.Open();
-                            await openedArchiveStream.CopyToAsync(saveEntryStream, cancellationToken);
-                        }
-                    }
-
                     var upgradeResult = await ApplyUpgrades(upgradeManager);
 
                     // If the result is not null, the upgrade failed.
