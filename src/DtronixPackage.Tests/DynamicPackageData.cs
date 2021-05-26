@@ -8,8 +8,8 @@ namespace DtronixPackage.Tests
     {
         public PackageDataContractRoot Data { get; private set; }
 
-        public DynamicPackageData(Version appVersion, IntegrationTestBase integrationTest)
-            : base(appVersion, integrationTest, false, false)
+        public DynamicPackageData(Version currentAppVersion, IntegrationTestBase integrationTest)
+            : base(currentAppVersion, integrationTest, false, false)
         {
             Data = new PackageDataContractRoot();
 

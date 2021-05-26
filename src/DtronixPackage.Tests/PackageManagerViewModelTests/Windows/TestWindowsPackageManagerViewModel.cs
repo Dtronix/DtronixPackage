@@ -4,14 +4,14 @@ using DtronixPackage.ViewModel;
 
 namespace DtronixPackage.Tests.PackageManagerViewModelTests.Windows
 {
-    public class TestWindowsPackageManagerViewModel : WindowsPackageManagerViewModel<PackageManagerViewModelPackage, EmptyPackageContent>
+    public class TestWindowsPackageManagerViewModel : WindowsPackageManagerViewModel<PackageManagerViewModelPackage, TestPackageContent>
     {
         public Action<BrowseEventArgs> BrowsingOpen;
         public Action<BrowseEventArgs> BrowsingSave;
 
-        public Func<PackageManagerViewModelPackage, Task<bool>> PackageOpening;
+        public Func<PackageReader, PackageManagerViewModelPackage, Task<bool>> PackageOpening;
 
-        public Func<PackageManagerViewModelPackage, Task> PackageSaving;
+        public Func<PackageWriter, PackageManagerViewModelPackage, Task> PackageSaving;
 
         public TaskCompletionSource<bool> NewPackageCreated = new TaskCompletionSource<bool>();
 

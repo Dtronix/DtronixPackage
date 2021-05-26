@@ -3,12 +3,14 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 using DtronixPackage.Upgrades;
+using NLog;
 using NUnit.Framework;
 
 namespace DtronixPackage.Tests.StructureTests
 {
     public class StructureTests_Open : StructureTestBase
     {
+        private static Logger logger = LogManager.GetCurrentClassLogger();
 
         [Test]
         public async Task BasicPackage()
@@ -18,8 +20,8 @@ namespace DtronixPackage.Tests.StructureTests
                 ("version", "1.1.0"),
                 ("DtronixPackage.Tests/version", "1.0.0"),
             });
-
-            Assert.AreEqual(PackageOpenResult.Success, await Package.Open(packagePath));
+            var result = await Package.Open(packagePath);
+            Assert.AreEqual(PackageOpenResult.Success, result);
         }
 
         [Test]
@@ -52,9 +54,9 @@ namespace DtronixPackage.Tests.StructureTests
                 ("DtronixPackage.Tests/version", "1.0.0"),
                 ("DtronixPackage.Tests/test.json", "{\"Integer\":543210,\"Double\":1234.5678,\"String\":\"Test String\",\"Byte\":128,\"Bytes\":\"AAECAwQFBgcICQ==\",\"DateTimeOffset\":\"2020-08-03T17:42:58.0241586-04:00\"}")
             });
-            Package.Opening = async package =>
+            Package.Reading = async (reader, package) =>
             {
-                var testJson = await Package.ReadJson<TestJsonObject>("test.json");
+                var testJson = await reader.ReadJson<TestJsonObject>("test.json");
                 
                 Assert.AreEqual((byte)128, testJson.Byte);
                 Assert.AreEqual(new byte[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}, testJson.Bytes);
@@ -79,9 +81,9 @@ namespace DtronixPackage.Tests.StructureTests
                 ("DtronixPackage.Tests/version", "1.0.0"),
                 ("DtronixPackage.Tests/test.txt", testString)
             });
-            Package.Opening = async package =>
+            Package.Reading = async (reader, package) =>
             {
-                Assert.AreEqual(testString, await Package.ReadString("test.txt"));
+                Assert.AreEqual(testString, await reader.ReadString("test.txt"));
                 return true;
             };
 
@@ -98,10 +100,10 @@ namespace DtronixPackage.Tests.StructureTests
                 ("DtronixPackage.Tests/version", "1.0.0"),
                 ("DtronixPackage.Tests/test.bin", binaryData)
             });
-            Package.Opening = async package =>
+            Package.Reading = async (reader, package) =>
             {
                 var readData = new byte[binaryData.Length];
-                await using var stream = Package.GetStream("test.bin");
+                await using var stream = reader.GetStream("test.bin");
                 await stream.ReadAsync(readData);
                 Assert.AreEqual(binaryData, readData);
                 return true;

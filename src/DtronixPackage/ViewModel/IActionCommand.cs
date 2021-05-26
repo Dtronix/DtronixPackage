@@ -6,5 +6,6 @@ namespace DtronixPackage.ViewModel
     {
         string GestureText { get; }
         KeyGesture Gesture { get; }
+        internal void SetCanExecute(bool value);
     }
 }

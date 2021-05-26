@@ -14,14 +14,14 @@ namespace DtronixPackage.Tests.IntegrationTests
             Version firstVersion,
             Version secondVersion)
         {
-            await CreateAndClosePackage(async f => await f.WriteJson(ContentFileName, SampleJson), firstVersion);
+            await CreateAndClosePackage(async (writer, package) => await writer.WriteJson(ContentFileName, SampleJson), firstVersion);
 
             // Open, save & close the package.
             var package = new DynamicPackage(secondVersion, this, saveMissMatch, false)
             {
-                Saving = async argsPackage =>
+                Writing = async (writer, package) =>
                 {
-                    await argsPackage.WriteJson(ContentFileName, SampleJson);
+                    await writer.WriteJson(ContentFileName, SampleJson);
                 }
             };
             return package;

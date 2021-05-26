@@ -12,10 +12,10 @@ namespace DtronixPackage.Tests.IntegrationTests
         [Test]
         public async Task UpgradeIgnoresPastVersions()
         {
-            await CreateAndClosePackage(async f => await f.WriteString(ContentFileName, SampleText));
+            await CreateAndClosePackage(async (writer, package) => await writer.Write(ContentFileName, SampleText));
             var file = new DynamicPackage(new Version(1, 1), this, true, false);
             bool upgradeRan = false;
-            file.UpgradeOverrides.Add(new PackageUpgradeCallback(new Version(1, 0), args =>
+            file.UpgradeOverrides.Add(new ApplicationPackageUpgradeCallback(new Version(1, 2), new Version(1, 0), args =>
             {
                 upgradeRan = true;
                 return Task.FromResult(true);
@@ -29,10 +29,10 @@ namespace DtronixPackage.Tests.IntegrationTests
         [Test]
         public async Task UpgradeIgnoresFutureUpgrades()
         {
-            await CreateAndClosePackage(async f => await f.WriteString(ContentFileName, SampleText));
+            await CreateAndClosePackage(async (writer, package) => await writer.Write(ContentFileName, SampleText));
             var file = new DynamicPackage(new Version(1, 0), this, true, false);
             bool upgradeRan = false;
-            file.UpgradeOverrides.Add(new PackageUpgradeCallback(new Version(1, 1), args =>
+            file.UpgradeOverrides.Add(new ApplicationPackageUpgradeCallback(new Version(1,2),new Version(1, 1), args =>
             {
                 upgradeRan = true;
                 return Task.FromResult(true);
@@ -46,10 +46,10 @@ namespace DtronixPackage.Tests.IntegrationTests
         [Test]
         public async Task UpgradeUpgradesOldFile()
         {
-            await CreateAndClosePackage(async f => await f.WriteString(ContentFileName, SampleText));
+            await CreateAndClosePackage(async (writer, package) => await writer.Write(ContentFileName, SampleText));
             var file = new DynamicPackage(new Version(1, 1), this, true, false);
             bool upgradeRan = false;
-            file.UpgradeOverrides.Add(new PackageUpgradeCallback(new Version(1, 1), args =>
+            file.UpgradeOverrides.Add(new ApplicationPackageUpgradeCallback(new Version(1, 2),new Version(1, 1), args =>
             {
                 upgradeRan = true;
                 return Task.FromResult(true);
@@ -63,9 +63,9 @@ namespace DtronixPackage.Tests.IntegrationTests
         [Test]
         public async Task UpgradeOpenFailsOnFalseUpgradeReturn()
         {
-            await CreateAndClosePackage(async f => await f.WriteString(ContentFileName, SampleText));
+            await CreateAndClosePackage(async (writer, package) => await writer.Write(ContentFileName, SampleText));
             var file = new DynamicPackage(new Version(1, 1), this, true, false);
-            file.UpgradeOverrides.Add(new PackageUpgradeCallback(new Version(1, 1), args => Task.FromResult(false)));
+            file.UpgradeOverrides.Add(new ApplicationPackageUpgradeCallback(new Version(1, 2), new Version(1, 1), args => Task.FromResult(false)));
             var openResult = await file.Open(PackageFilename);
 
             Assert.AreEqual(PackageOpenResultType.UpgradeFailure, openResult.Result);
@@ -74,9 +74,9 @@ namespace DtronixPackage.Tests.IntegrationTests
         [Test]
         public async Task UpgradeOpenSucceedsOnTrueUpgradeReturn()
         {
-            await CreateAndClosePackage(async f => await f.WriteString(ContentFileName, SampleText));
+            await CreateAndClosePackage(async (writer, package) => await writer.Write(ContentFileName, SampleText));
             var file = new DynamicPackage(new Version(1, 1), this, true, false);
-            file.UpgradeOverrides.Add(new PackageUpgradeCallback(new Version(1, 1), args => Task.FromResult(true)));
+            file.UpgradeOverrides.Add(new ApplicationPackageUpgradeCallback(new Version(1, 2), new Version(1, 1), args => Task.FromResult(true)));
             var openResult = await file.Open(PackageFilename);
 
             Assert.AreEqual(PackageOpenResultType.Success, openResult.Result);
@@ -85,9 +85,9 @@ namespace DtronixPackage.Tests.IntegrationTests
         [Test]
         public async Task UpgradeBacksUpInitialFiles()
         {
-            await CreateAndClosePackage(async f => await f.WriteString(ContentFileName, SampleText));
+            await CreateAndClosePackage(async (writer, package) => await writer.Write(ContentFileName, SampleText));
             var file = new DynamicPackage(new Version(1, 1), this, true, false);
-            file.UpgradeOverrides.Add(new PackageUpgradeCallback(new Version(1, 1), args =>
+            file.UpgradeOverrides.Add(new ApplicationPackageUpgradeCallback(new Version(1, 2), new Version(1, 1), args =>
             {
                 if(args.Archive.Entries.All(en => en.FullName != "DtronixPackage.Tests/" + ContentFileName))
                     return Task.FromResult(false);
@@ -105,7 +105,7 @@ namespace DtronixPackage.Tests.IntegrationTests
         [Test]
         public async Task UpgradeIgnoresOtherFiles()
         {
-            await CreateAndClosePackage(async f => await f.WriteString(ContentFileName, SampleText));
+            await CreateAndClosePackage(async (writer, package) => await writer.Write(ContentFileName, SampleText));
 
             await using(var fs = File.Open(PackageFilename, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite))
             using (var archive = new ZipArchive(fs, ZipArchiveMode.Update))
@@ -119,7 +119,7 @@ namespace DtronixPackage.Tests.IntegrationTests
             }
 
             var file = new DynamicPackage(new Version(1, 1), this, true, false);
-            file.UpgradeOverrides.Add(new PackageUpgradeCallback(new Version(1, 1), args =>
+            file.UpgradeOverrides.Add(new ApplicationPackageUpgradeCallback(new Version(1, 2), new Version(1, 1), args =>
             {
                 return Task.FromResult(args.Archive.Entries.Any(en => en.FullName == "test.text"));
             }));
@@ -131,10 +131,10 @@ namespace DtronixPackage.Tests.IntegrationTests
         [Test]
         public async Task UpgradeModifiesFilesBeforeOpen()
         {
-            await CreateAndClosePackage(async f => await f.WriteString(ContentFileName, SampleText));
+            await CreateAndClosePackage(async (writer, package) => await writer.Write(ContentFileName, SampleText));
 
             var file = new DynamicPackage(new Version(1, 1), this, true, false);
-            file.UpgradeOverrides.Add(new PackageUpgradeCallback(new Version(1, 1), args =>
+            file.UpgradeOverrides.Add(new ApplicationPackageUpgradeCallback(new Version(1, 2), new Version(1, 1), args =>
             {
                 var entry = args.Archive.Entries.FirstOrDefault(f => f.Name == ContentFileName);
 
@@ -148,9 +148,9 @@ namespace DtronixPackage.Tests.IntegrationTests
                 return Task.FromResult(true);
             }));
 
-            file.Opening += async package =>
+            file.Reading += async (reader, package) =>
             {
-                var fileContents = await package.ReadString(ContentFileName);
+                var fileContents = await reader.ReadString(ContentFileName);
                 Assert.AreEqual(SampleText + SampleText, fileContents);
                 return true;
             };
@@ -163,19 +163,19 @@ namespace DtronixPackage.Tests.IntegrationTests
         [Test]
         public async Task UpgradeDeletesFilesBeforeOpen()
         {
-            await CreateAndClosePackage(async f => await f.WriteString(ContentFileName, SampleText));
+            await CreateAndClosePackage(async (writer, package) => await writer.Write(ContentFileName, SampleText));
 
             var file = new DynamicPackage(new Version(1, 1), this, true, false);
-            file.UpgradeOverrides.Add(new PackageUpgradeCallback(new Version(1, 1), args =>
+            file.UpgradeOverrides.Add(new ApplicationPackageUpgradeCallback(new Version(1, 2), new Version(1, 1), args =>
             {
                 var entry = args.Archive.Entries.FirstOrDefault(f => f.Name == ContentFileName);
                 entry?.Delete();
                 return Task.FromResult(true);
             }));
 
-            file.Opening += package =>
+            file.Reading += (reader, package) =>
             {
-                Assert.IsFalse(package.FileExists(ContentFileName));
+                Assert.IsFalse(reader.FileExists(ContentFileName));
                 return Task.FromResult(true);
             };
 

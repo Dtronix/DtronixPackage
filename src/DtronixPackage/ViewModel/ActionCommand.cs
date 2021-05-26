@@ -35,7 +35,7 @@ namespace DtronixPackage.ViewModel
             return _canExecute;
         }
 
-        public void SetCanExecute(bool value)
+        void IActionCommand.SetCanExecute(bool value)
         {
             if (_canExecute == value)
                 return;

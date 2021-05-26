@@ -6,24 +6,24 @@ using DtronixPackage.Tests.IntegrationTests;
 namespace DtronixPackage.Tests
 {
 
-    public class DynamicPackage : DynamicPackage<EmptyPackageContent>
+    public class DynamicPackage : DynamicPackage<TestPackageContent>
     {
         public DynamicPackage(
-            Version appVersion,
+            Version currentAppVersion,
             IntegrationTestBase integrationTest,
             bool preserveUpgrade,
             bool useLockFile)
-            : base(appVersion, integrationTest, preserveUpgrade, useLockFile)
+            : base(currentAppVersion, integrationTest, preserveUpgrade, useLockFile)
         {
         }
 
         public DynamicPackage(
-            Version appVersion,
+            Version currentAppVersion,
             IntegrationTestBase integrationTest,
             bool preserveUpgrade,
             bool useLockFile,
             string appName)
-            : base(appVersion, integrationTest, preserveUpgrade, useLockFile, appName)
+            : base(currentAppVersion, integrationTest, preserveUpgrade, useLockFile, appName)
         {
         }
     }
@@ -33,9 +33,9 @@ namespace DtronixPackage.Tests
     {
         private readonly IntegrationTestBase _integrationTest;
 
-        public Func<DynamicPackage<TContent>, Task<bool>> Opening;
+        public Func<PackageReader, DynamicPackage<TContent>, Task<bool>> Reading;
 
-        public Func<DynamicPackage<TContent>, Task> Saving;
+        public Func<PackageWriter, DynamicPackage<TContent>, Task> Writing;
 
         public Func<string> TempPackagePathRequest;
 
@@ -46,34 +46,34 @@ namespace DtronixPackage.Tests
         internal override DateTimeOffset CurrentDateTimeOffset => DateTimeOffsetOverride ?? DateTimeOffset.Now;
 
         public DynamicPackage(
-            Version appVersion,
+            Version currentAppVersion,
             IntegrationTestBase integrationTest, 
             bool preserveUpgrade,
             bool useLockFile) 
-            : this(appVersion, integrationTest, preserveUpgrade, useLockFile, "DtronixPackage.Tests")
+            : this(currentAppVersion, integrationTest, preserveUpgrade, useLockFile, "DtronixPackage.Tests")
         {
         }
 
         public DynamicPackage(
-            Version appVersion,
+            Version currentAppVersion,
             IntegrationTestBase integrationTest, 
             bool preserveUpgrade,
             bool useLockFile,
             string appName) 
-            : base(appName, appVersion, preserveUpgrade, useLockFile)
+            : base(appName, currentAppVersion, preserveUpgrade, useLockFile)
         {
             _integrationTest = integrationTest;
             Logger = new NLogLogger(nameof(DynamicPackage<TContent>));
         }
 
-        protected override async Task<bool> OnOpen(bool isUpgrade)
+        protected override async Task<bool> OnRead(PackageReader reader)
         {
             try
             {
-                if (Opening == null)
+                if (Reading == null)
                     return true;
 
-                return await Opening(this);
+                return await Reading(reader, this);
             }
             catch (Exception ex)
             {
@@ -87,12 +87,12 @@ namespace DtronixPackage.Tests
             }
         }
 
-        protected override async Task OnSave()
+        protected override async Task OnWrite(PackageWriter writer)
         {
             try
             {
-                if(Saving != null)
-                    await Saving(this);
+                if(Writing != null)
+                    await Writing(writer, this);
             }
             catch (Exception ex)
             {

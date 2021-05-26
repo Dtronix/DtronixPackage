@@ -6,14 +6,14 @@ using DtronixPackage.ViewModel;
 
 namespace DtronixPackage.Tests.PackageManagerViewModelTests
 {
-    public class TestPackageManagerViewModel : PackageManagerViewModel<PackageManagerViewModelPackage, EmptyPackageContent>
+    public class TestPackageManagerViewModel : PackageManagerViewModel<PackageManagerViewModelPackage, TestPackageContent>
     {
         public Action<BrowseEventArgs> BrowsingOpen;
         public Action<BrowseEventArgs> BrowsingSave;
 
-        public Func<PackageManagerViewModelPackage, Task<bool>> PackageOpening;
+        public Func<PackageReader, PackageManagerViewModelPackage, Task<bool>> PackageOpening;
 
-        public Func<PackageManagerViewModelPackage, Task> PackageSaving;
+        public Func<PackageWriter, PackageManagerViewModelPackage, Task> PackageSaving;
 
         public TaskCompletionSource<bool> SaveAsComplete;
         public TaskCompletionSource<bool> SaveComplete;

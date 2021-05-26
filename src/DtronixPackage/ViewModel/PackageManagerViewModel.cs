@@ -73,9 +73,9 @@ namespace DtronixPackage.ViewModel
                     _ = _package.ConfigureAutoSave(_autoSavePeriod, _autoSavePeriod, AutoSaveEnabled);
                 }
 
-                _saveActionCommand.SetCanExecute(_package != null);
-                _saveAsActionCommand.SetCanExecute(_package != null);
-                _closeActionCommand.SetCanExecute(_package != null);
+                SaveCommand.SetCanExecute(_package != null);
+                SaveAsCommand.SetCanExecute(_package != null);
+                CloseCommand.SetCanExecute(_package != null);
 
                 OnPropertyChanged();
 
@@ -89,13 +89,7 @@ namespace DtronixPackage.ViewModel
         public event EventHandler<PackageEventArgs<TPackage>> PackageChanged;
 
         public event EventHandler<PackageMessageEventArgs> ShowMessage; 
-
-        private readonly ActionCommand _saveActionCommand;
-        private readonly ActionCommand _saveAsActionCommand;
-        private readonly ActionCommand _openActionCommand;
-        private readonly ActionCommand _closeActionCommand;
-        private readonly ActionCommand _newActionCommand;
-
+        
         public IActionCommand SaveCommand { get; }
         public IActionCommand SaveAsCommand { get; }
         public IActionCommand OpenCommand { get; }
@@ -118,19 +112,15 @@ namespace DtronixPackage.ViewModel
         {
             _appName = appName;
             WindowTitle = appName;
-            SaveCommand =_saveActionCommand 
-                = new ActionCommand(SaveCommand_Execute, false, new KeyGesture(Key.S, ModifierKeys.Control));
+            SaveCommand = new ActionCommand(SaveCommand_Execute, false, new KeyGesture(Key.S, ModifierKeys.Control));
 
-            SaveAsCommand = _saveAsActionCommand 
-                = new ActionCommand(SaveAsCommand_Execute, false, 
+            SaveAsCommand = new ActionCommand(SaveAsCommand_Execute, false, 
                     new KeyGesture(Key.S, ModifierKeys.Control | ModifierKeys.Shift));
 
-            OpenCommand = _openActionCommand 
-                = new ActionCommand(OpenCommand_Execute, true, new KeyGesture(Key.O, ModifierKeys.Control));
+            OpenCommand = new ActionCommand(OpenCommand_Execute, true, new KeyGesture(Key.O, ModifierKeys.Control));
 
-            CloseCommand = _closeActionCommand = new ActionCommand(CloseCommand_Execute, false);
-            NewCommand = _newActionCommand 
-                = new ActionCommand(NewCommand_Execute, true, new KeyGesture(Key.N, ModifierKeys.Control));
+            CloseCommand = new ActionCommand(CloseCommand_Execute, false);
+            NewCommand = new ActionCommand(NewCommand_Execute, true, new KeyGesture(Key.N, ModifierKeys.Control));
 
             // Get the current dispatcher.  Can be null.
             _appDispatcher = Application.Current?.Dispatcher;
@@ -162,41 +152,76 @@ namespace DtronixPackage.ViewModel
         /// <summary>
         /// Implements the execution of <see cref="SaveCommand" />
         /// </summary>
-        private void SaveCommand_Execute()
+        private async void SaveCommand_Execute()
         {
-            _ = Save();
+            try
+            {
+                await Save();
+            }
+            catch
+            {
+                // Ignore
+            }
         }
 
         /// <summary>
         /// Implements the execution of <see cref="SaveAsCommand" />
         /// </summary>
-        private void SaveAsCommand_Execute()
+        private async void SaveAsCommand_Execute()
         {
-            _ = SaveAs();
+            try
+            {
+                await SaveAs();
+            }
+            catch
+            {
+                // Ignore
+            }
         }
 
         /// <summary>
         /// Implements the execution of <see cref="NewCommand" />
         /// </summary>
-        private void NewCommand_Execute()
+        private async void NewCommand_Execute()
         {
-            _ = New();
+            try
+            {
+                await New();
+            }
+            catch
+            {
+                // Ignore
+            }
         }
 
         /// <summary>
         /// Implements the execution of <see cref="OpenCommand" />
         /// </summary>
-        private void OpenCommand_Execute()
+        private async void OpenCommand_Execute()
         {
-            _ = Open();
+            try
+            {
+                await Open();
+            }
+            catch
+            {
+                // Ignore
+            }
         }
 
         /// <summary>
         /// Implements the execution of <see cref="CloseCommand" />
         /// </summary>
-        private void CloseCommand_Execute()
+        private async void CloseCommand_Execute()
         {
-            _ = TryClose();
+            try
+            {
+                await TryClose();
+            }
+            catch
+            {
+                // Ignore
+            }
         }
 
         /// <summary>
@@ -274,16 +299,44 @@ namespace DtronixPackage.ViewModel
             // If the file is locked, give the option to open read-only.
             if (result.IsSuccessful == false)
             {
-                if (result.Result == PackageOpenResultType.IncompatibleVersion)
+                if (result.Result == PackageOpenResultType.IncompatibleVersion
+                 || result.Result == PackageOpenResultType.IncompatiblePackageVersion)
                 {
                     var message = new PackageMessageEventArgs(
-                        PackageMessageEventArgs.MessageType.OK,
-                        $"Can not open file.\r\n\r\nOpened file version is {result.OpenVersion} while application is version {openFile.AppVersion} ",
+                        PackageMessageEventArgs.MessageType.OK, 
+                        "Can not open file.\r\n\r\n" + (result.Result == PackageOpenResultType.IncompatibleVersion 
+                            ? $" Opened file version is {result.OpenVersion} while application is version {openFile.CurrentAppVersion}."
+                            : $"Package version {result.OpenVersion} is incompatible."),
                         "Version Incompatible",
                         MessageBoxImage.Exclamation);
 
                     ShowMessage?.Invoke(this, message);
                     
+                    return false;
+                }
+
+                if (result.Result == PackageOpenResultType.UpgradeFailure)
+                {
+                    var message = new PackageMessageEventArgs(
+                        PackageMessageEventArgs.MessageType.OK,
+                        $"Can't open file. Failed upgrading file.\r\n\r\n{result.Exception.Message}",
+                        "Error Opening",
+                        MessageBoxImage.Exclamation);
+
+                    ShowMessage?.Invoke(this, message);
+
+                    return false;
+                }
+                else if (result.Result == PackageOpenResultType.FileNotFound)
+                {
+                    var message = new PackageMessageEventArgs(
+                        PackageMessageEventArgs.MessageType.OK,
+                        $"Scheduler file does not exist.\r\n\r\n{result.Exception.Message}",
+                        "File not Found",
+                        MessageBoxImage.None);
+
+                    ShowMessage?.Invoke(this, message);
+
                     return false;
                 }
 
@@ -301,7 +354,8 @@ namespace DtronixPackage.ViewModel
                 }
 
                 
-                if (result.Result == PackageOpenResultType.Locked)
+                if (result.Result == PackageOpenResultType.Locked 
+                    || result.Result == PackageOpenResultType.PermissionFailure)
                 {
                     var readOnlyText = result.LockInfo != null 
                         ? $"{path} is currently opened by {result.LockInfo.Username} on {result.LockInfo.DateOpened:F}." 
@@ -476,7 +530,7 @@ namespace DtronixPackage.ViewModel
         {
             InvokeOnDispatcher(() => {          
                 // Change the save state to ensure we only save when there are changes.  Leave SaveAs alone.
-                _saveActionCommand.SetCanExecute(Package?.IsContentModified == true);
+                SaveCommand.SetCanExecute(Package?.IsContentModified == true);
             });
 
             if (_addedModifiedText || !Package.IsContentModified)
@@ -488,7 +542,7 @@ namespace DtronixPackage.ViewModel
                 WindowTitle += " (Modified)"; 
 
                 // Change the save state to ensure we only save when there are changes.  Leave SaveAs alone.
-                _saveActionCommand.SetCanExecute(Package?.IsContentModified == true);
+                SaveCommand.SetCanExecute(Package?.IsContentModified == true);
             });
         }
     }

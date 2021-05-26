@@ -53,6 +53,11 @@
         /// <summary>
         /// Package path was not found.
         /// </summary>
-        FileNotFound
+        FileNotFound,
+
+        /// <summary>
+        /// Opened package version is newer than the currently package handler.
+        /// </summary>
+        IncompatiblePackageVersion,
     }
 }

@@ -6,11 +6,11 @@ using System.Threading.Tasks;
 
 namespace DtronixPackage.Tests.PackageManagerViewModelTests
 {
-    public class PackageManagerViewModelPackage : Package<EmptyPackageContent>
+    public class PackageManagerViewModelPackage : Package<TestPackageContent>
     {
-        public Func<PackageManagerViewModelPackage, Task<bool>> Opening;
+        public Func<PackageReader, PackageManagerViewModelPackage, Task<bool>> Opening;
 
-        public Func<PackageManagerViewModelPackage, Task> Saving;
+        public Func<PackageWriter, PackageManagerViewModelPackage, Task> Saving;
 
         public Func<string> TempPackagePathRequest;
 
@@ -22,14 +22,14 @@ namespace DtronixPackage.Tests.PackageManagerViewModelTests
             Logger = new NLogLogger(nameof(PackageManagerViewModelPackage));
         }
 
-        protected override async Task<bool> OnOpen(bool isUpgrade)
+        protected override async Task<bool> OnRead(PackageReader reader)
         {
             try
             {
                 if (Opening == null)
                     return true;
 
-                return await Opening(this);
+                return await Opening(reader, this);
             }
             catch (Exception ex)
             {
@@ -39,12 +39,12 @@ namespace DtronixPackage.Tests.PackageManagerViewModelTests
             return false;
         }
 
-        protected override async Task OnSave()
+        protected override async Task OnWrite(PackageWriter writer)
         {
             try
             {
                 if (Saving != null)
-                    await Saving(this);
+                    await Saving(writer, this);
             }
             catch (Exception ex)
             {
