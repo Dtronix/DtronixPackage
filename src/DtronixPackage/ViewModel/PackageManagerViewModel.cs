@@ -327,6 +327,18 @@ namespace DtronixPackage.ViewModel
 
                     return false;
                 }
+                else if (result.Result == PackageOpenResultType.FileNotFound)
+                {
+                    var message = new PackageMessageEventArgs(
+                        PackageMessageEventArgs.MessageType.OK,
+                        $"Scheduler file does not exist.\r\n\r\n{result.Exception.Message}",
+                        "File not Found",
+                        MessageBoxImage.None);
+
+                    ShowMessage?.Invoke(this, message);
+
+                    return false;
+                }
 
                 if (result.Result == PackageOpenResultType.UnknownFailure)
                 {
