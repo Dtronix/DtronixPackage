@@ -8,7 +8,7 @@ namespace DtronixPackage
     {
         public Version DependentPackageVersion { get; }
 
-        protected PackageUpgrade(Version dependentPackageVersion)
+        internal PackageUpgrade(Version dependentPackageVersion)
         {
             DependentPackageVersion = dependentPackageVersion;
         }

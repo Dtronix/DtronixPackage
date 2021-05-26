@@ -10,7 +10,6 @@ namespace DtronixPackage.Tests.IntegrationTests
     public class PackageTests_Upgrade : IntegrationTestBase
     {
         [Test]
-        [Ignore("Need to rework with new upgrade manager.")]
         public async Task UpgradeIgnoresPastVersions()
         {
             await CreateAndClosePackage(async (writer, package) => await writer.Write(ContentFileName, SampleText));
