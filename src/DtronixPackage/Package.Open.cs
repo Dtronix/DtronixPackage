@@ -185,7 +185,7 @@ namespace DtronixPackage
                         await using var stream = changelogEntry.Open();
                         var logItems = await JsonSerializer.DeserializeAsync<ChangelogEntry[]>(
                             stream,
-                            null,
+                            options: null,
                             cancellationToken);
 
                         foreach (var changelogItem in logItems)
