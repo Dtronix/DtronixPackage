@@ -7,6 +7,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using DtronixPackage.Logging;
@@ -199,7 +200,7 @@ namespace DtronixPackage
 
             JsonSerializerOptions = new JsonSerializerOptions
             {
-                IgnoreNullValues = true,
+                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
                 WriteIndented = false,
                 ReadCommentHandling = JsonCommentHandling.Skip,
                 PropertyNamingPolicy = null,
