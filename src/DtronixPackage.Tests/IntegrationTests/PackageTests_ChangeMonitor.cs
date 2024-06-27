@@ -9,7 +9,7 @@ namespace DtronixPackage.Tests.IntegrationTests
 
         private void MonitorChangesTests(DynamicPackageData package, Action test)
         {
-            Assert.IsFalse(package.IsContentModified);
+            Assert.That(package.IsContentModified, Is.False);
             package.Data.Children.Add(new PackageDataContractChild());
             test.Invoke();
 
@@ -49,7 +49,7 @@ namespace DtronixPackage.Tests.IntegrationTests
         public void RegistersChanges()
         {
             var package = new DynamicPackageData(new Version(1,0), this);
-            MonitorChangesTests(package, () => Assert.IsTrue(package.IsContentModified));
+            MonitorChangesTests(package, () => Assert.That(package.IsContentModified, Is.True));
         }
 
         [Test]
@@ -57,7 +57,7 @@ namespace DtronixPackage.Tests.IntegrationTests
         {
             var package = new DynamicPackageData(new Version(1,0), this);
             package.MonitorDeregisterOverride(package.Data);
-            MonitorChangesTests(package, () => Assert.IsFalse(package.IsContentModified));
+            MonitorChangesTests(package, () => Assert.That(package.IsContentModified, Is.False));
         }
 
         [Test]
@@ -70,7 +70,7 @@ namespace DtronixPackage.Tests.IntegrationTests
                 package.Data.Children.Add(new PackageDataContractChild());
             });
 
-            Assert.IsFalse(package.IsContentModified);
+            Assert.That(package.IsContentModified, Is.False);
         }
 
         [Test]
@@ -83,7 +83,7 @@ namespace DtronixPackage.Tests.IntegrationTests
 
             subTypeInstance.Value = "test 2";
 
-            Assert.IsFalse(package.IsContentModified);
+            Assert.That(package.IsContentModified, Is.False);
         }
 
 

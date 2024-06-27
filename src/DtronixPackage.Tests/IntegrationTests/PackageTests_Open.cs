@@ -12,7 +12,7 @@ namespace DtronixPackage.Tests.IntegrationTests
         {
             await CreateAndClosePackage((writer, package) => Task.CompletedTask, new Version(2, 0));
             var file = new DynamicPackageData(new Version(1,0), this);
-            Assert.AreEqual(PackageOpenResultType.IncompatibleVersion, (await file.Open(PackageFilename)).Result);
+            Assert.That((await file.Open(PackageFilename)).Result, Is.EqualTo(PackageOpenResultType.IncompatibleVersion));
         }
 
         [Test]
@@ -22,7 +22,7 @@ namespace DtronixPackage.Tests.IntegrationTests
 
             // Open, save & close the file.
             var file = new DynamicPackage(new Version(1,0), this, false, false);
-            Assert.AreEqual(PackageOpenResultType.Corrupted, (await file.Open(PackageFilename)).Result);
+            Assert.That((await file.Open(PackageFilename)).Result, Is.EqualTo(PackageOpenResultType.Corrupted));
         }
 
         [Test]
@@ -32,7 +32,7 @@ namespace DtronixPackage.Tests.IntegrationTests
 
             // Open, save & close the file.
             var file = new DynamicPackage(new Version(1,0), this, false, false);
-            Assert.AreEqual(PackageOpenResultType.Locked, (await file.Open(PackageFilename)).Result);
+            Assert.That((await file.Open(PackageFilename)).Result, Is.EqualTo(PackageOpenResultType.Locked));
 
             fileStream.Close();
             File.Delete(PackageFilename);
@@ -47,7 +47,7 @@ namespace DtronixPackage.Tests.IntegrationTests
 
             // Open, save & close the file.
             var file = new DynamicPackage(new Version(1,0), this, false, true);
-            Assert.AreEqual(PackageOpenResultType.Locked, (await file.Open(PackageFilename)).Result);
+            Assert.That((await file.Open(PackageFilename)).Result, Is.EqualTo(PackageOpenResultType.Locked));
 
             fileStream.Close();
         }
@@ -62,7 +62,7 @@ namespace DtronixPackage.Tests.IntegrationTests
 
             var fileOpen = new DynamicPackage(new Version(1,0), this, false, false);
 
-            Assert.AreEqual(PackageOpenResultType.Locked, (await fileOpen.Open(PackageFilename)).Result);
+            Assert.That((await fileOpen.Open(PackageFilename)).Result, Is.EqualTo(PackageOpenResultType.Locked));
         }
 
         [Test]
@@ -76,16 +76,16 @@ namespace DtronixPackage.Tests.IntegrationTests
             var fileOpen = new DynamicPackage(new Version(1,0), this, false, true);
 
             var result = await fileOpen.Open(PackageFilename);
-            Assert.AreEqual(PackageOpenResultType.Locked, result.Result);
+            Assert.That(result.Result, Is.EqualTo(PackageOpenResultType.Locked));
 
-            Assert.IsNotNull(result.LockInfo);
+            Assert.That(result.LockInfo, Is.Not.Null);
 
             file.Close();
 
             result = await fileOpen.Open(PackageFilename);
-            Assert.IsTrue(result.IsSuccessful);
+            Assert.That(result.IsSuccessful, Is.True);
 
-            Assert.IsNull(result.LockInfo);
+            Assert.That(result.LockInfo, Is.Null);
         }
 
         [Test]
@@ -94,14 +94,14 @@ namespace DtronixPackage.Tests.IntegrationTests
             await CreateAndClosePackage((writer, package) => writer.Write(ContentFileName, SampleText));
 
             var file = new DynamicPackage(new Version(1,0), this, false, false);
-            Assert.AreEqual(PackageOpenResult.Success, await file.Open(PackageFilename));
+            Assert.That(await file.Open(PackageFilename), Is.EqualTo(PackageOpenResult.Success));
         }
 
         [Test]
         public async Task FailsOnNonExistingPackage()
         {
             var file = new DynamicPackage(new Version(1,0), this, false, false);
-            Assert.AreEqual(PackageOpenResultType.FileNotFound, (await file.Open(PackageFilename)).Result);
+            Assert.That((await file.Open(PackageFilename)).Result, Is.EqualTo(PackageOpenResultType.FileNotFound));
         }
 
         [Test]
@@ -112,28 +112,28 @@ namespace DtronixPackage.Tests.IntegrationTests
             using(var file = new DynamicPackageData(new Version(1,0), this))
             {
                 var result = await file.Open(PackageFilename);
-                Assert.IsFalse(result.IsSuccessful);
+                Assert.That(result.IsSuccessful, Is.False);
             }
 
             await using (new FileStream(PackageFilename, FileMode.Open, FileAccess.Read, FileShare.Read))
             using(var file = new DynamicPackageData(new Version(1,0), this))
             {
                 var result = await file.Open(PackageFilename);
-                Assert.IsFalse(result.IsSuccessful);
+                Assert.That(result.IsSuccessful, Is.False);
             }
 
             await using (new FileStream(PackageFilename, FileMode.Open, FileAccess.ReadWrite, FileShare.Read))
             using(var file = new DynamicPackageData(new Version(1,0), this))
             {
                 var result = await file.Open(PackageFilename);
-                Assert.IsFalse(result.IsSuccessful);
+                Assert.That(result.IsSuccessful, Is.False);
             }
 
             await using (new FileStream(PackageFilename, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
             using(var file = new DynamicPackageData(new Version(1,0), this))
             {
                 var result = await file.Open(PackageFilename);
-                Assert.IsFalse(result.IsSuccessful);
+                Assert.That(result.IsSuccessful, Is.False);
             }
 
         }
@@ -147,28 +147,28 @@ namespace DtronixPackage.Tests.IntegrationTests
             using(var file = new DynamicPackageData(new Version(1,0), this))
             {
                 var result = await file.Open(PackageFilename);
-                Assert.IsTrue(result.IsSuccessful);
+                Assert.That(result.IsSuccessful, Is.True);
             }
             
             await using (new FileStream(PackageFilename, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite))
             using(var file = new DynamicPackageData(new Version(1,0), this))
             {
                 var result = await file.Open(PackageFilename, true);
-                Assert.IsTrue(result.IsSuccessful);
+                Assert.That(result.IsSuccessful, Is.True);
             }
 
             await using (File.OpenWrite(PackageFilename))
             using(var file = new DynamicPackageData(new Version(1,0), this))
             {
                 var result = await file.Open(PackageFilename);
-                Assert.AreEqual(PackageOpenResultType.Locked, result.Result);
+                Assert.That(result.Result, Is.EqualTo(PackageOpenResultType.Locked));
             }
 
             await using (new FileStream(PackageFilename, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
             using(var file = new DynamicPackageData(new Version(1,0), this))
             {
                 var result = await file.Open(PackageFilename);
-                Assert.AreEqual(PackageOpenResultType.Locked, result.Result);
+                Assert.That(result.Result, Is.EqualTo(PackageOpenResultType.Locked));
             }
         }
 
@@ -181,14 +181,14 @@ namespace DtronixPackage.Tests.IntegrationTests
             using(var file = new DynamicPackageData(new Version(1,0), this))
             {
                 var result = await file.Open(PackageFilename, true);
-                Assert.IsFalse(result.IsSuccessful);
+                Assert.That(result.IsSuccessful, Is.False);
             }
 
             await using (new FileStream(PackageFilename, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
             using(var file = new DynamicPackageData(new Version(1,0), this))
             {
                 var result = await file.Open(PackageFilename, true);
-                Assert.IsFalse(result.IsSuccessful);
+                Assert.That(result.IsSuccessful, Is.False);
             }
         }
 
@@ -200,35 +200,35 @@ namespace DtronixPackage.Tests.IntegrationTests
             using(var file = new DynamicPackageData(new Version(1,0), this))
             {
                 var result = await file.Open(PackageFilename, true);
-                Assert.IsTrue(result.IsSuccessful);
+                Assert.That(result.IsSuccessful, Is.True);
             }
 
             await using (new FileStream(PackageFilename, FileMode.Open, FileAccess.Read, FileShare.Read))
             using(var file = new DynamicPackageData(new Version(1,0), this))
             {
                 var result = await file.Open(PackageFilename, true);
-                Assert.IsTrue(result.IsSuccessful);
+                Assert.That(result.IsSuccessful, Is.True);
             }
 
             await using (new FileStream(PackageFilename, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             using(var file = new DynamicPackageData(new Version(1,0), this))
             {
                 var result = await file.Open(PackageFilename, true);
-                Assert.IsTrue(result.IsSuccessful);
+                Assert.That(result.IsSuccessful, Is.True);
             }
 
             await using (new FileStream(PackageFilename, FileMode.Open, FileAccess.ReadWrite, FileShare.Read))
             using(var file = new DynamicPackageData(new Version(1,0), this))
             {
                 var result = await file.Open(PackageFilename, true);
-                Assert.IsTrue(result.IsSuccessful);
+                Assert.That(result.IsSuccessful, Is.True);
             }
 
             await using (new FileStream(PackageFilename, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite))
             using(var file = new DynamicPackageData(new Version(1,0), this))
             {
                 var result = await file.Open(PackageFilename, true);
-                Assert.IsTrue(result.IsSuccessful);
+                Assert.That(result.IsSuccessful, Is.True);
             }
         }
 
@@ -243,7 +243,7 @@ namespace DtronixPackage.Tests.IntegrationTests
             var fileOpen = new DynamicPackage(new Version(1,0), this, false, true);
 
             var result = await fileOpen.Open(PackageFilename);
-            Assert.AreEqual(PackageOpenResultType.IncompatibleApplication, result.Result);
+            Assert.That(result.Result, Is.EqualTo(PackageOpenResultType.IncompatibleApplication));
         }
 
         [Test]
@@ -270,7 +270,7 @@ namespace DtronixPackage.Tests.IntegrationTests
 
             await fileOpen.Open(PackageFilename);
 
-            Assert.IsFalse(fileOpen.IsContentModified);
+            Assert.That(fileOpen.IsContentModified, Is.False);
         }
     }
 }

@@ -1,10 +1,9 @@
-﻿namespace DtronixPackage
+﻿namespace DtronixPackage;
+
+public enum PackageSaveResultType
 {
-    public enum PackageSaveResultType
-    {
-        Unset,
-        Success,
-        Failure,
-        Locked
-    }
+    Unset,
+    Success,
+    Failure,
+    Locked
 }

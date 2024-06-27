@@ -23,7 +23,7 @@ namespace DtronixPackage.Tests.IntegrationTests
 
             await file.Open(PackageFilename);
 
-            Assert.IsFalse(upgradeRan);
+            Assert.That(upgradeRan, Is.False);
         }
 
         [Test]
@@ -40,7 +40,7 @@ namespace DtronixPackage.Tests.IntegrationTests
 
             await file.Open(PackageFilename);
 
-            Assert.IsFalse(upgradeRan);
+            Assert.That(upgradeRan, Is.False);
         }
 
         [Test]
@@ -57,7 +57,7 @@ namespace DtronixPackage.Tests.IntegrationTests
 
             await file.Open(PackageFilename);
 
-            Assert.IsTrue(upgradeRan);
+            Assert.That(upgradeRan, Is.True);
         }     
         
         [Test]
@@ -68,7 +68,7 @@ namespace DtronixPackage.Tests.IntegrationTests
             file.UpgradeOverrides.Add(new ApplicationPackageUpgradeCallback(new PackageUpgradeVersion(1, 2), new Version(1, 1), args => Task.FromResult(false)));
             var openResult = await file.Open(PackageFilename);
 
-            Assert.AreEqual(PackageOpenResultType.UpgradeFailure, openResult.Result);
+            Assert.That(openResult.Result, Is.EqualTo(PackageOpenResultType.UpgradeFailure));
         }
 
         [Test]
@@ -79,7 +79,7 @@ namespace DtronixPackage.Tests.IntegrationTests
             file.UpgradeOverrides.Add(new ApplicationPackageUpgradeCallback(new PackageUpgradeVersion(1, 2), new Version(1, 1), args => Task.FromResult(true)));
             var openResult = await file.Open(PackageFilename);
 
-            Assert.AreEqual(PackageOpenResultType.Success, openResult.Result);
+            Assert.That(openResult.Result, Is.EqualTo(PackageOpenResultType.Success));
         }
 
         [Test]
@@ -99,7 +99,7 @@ namespace DtronixPackage.Tests.IntegrationTests
             }));
             var openResult = await file.Open(PackageFilename);
 
-            Assert.AreEqual(PackageOpenResultType.Success, openResult.Result);
+            Assert.That(openResult.Result, Is.EqualTo(PackageOpenResultType.Success));
         }
 
         [Test]
@@ -125,7 +125,7 @@ namespace DtronixPackage.Tests.IntegrationTests
             }));
             var openResult = await file.Open(PackageFilename);
 
-            Assert.AreEqual(PackageOpenResultType.Success, openResult.Result);
+            Assert.That(openResult.Result, Is.EqualTo(PackageOpenResultType.Success));
         }
 
         [Test]
@@ -151,13 +151,13 @@ namespace DtronixPackage.Tests.IntegrationTests
             file.Reading += async (reader, package) =>
             {
                 var fileContents = await reader.ReadString(ContentFileName);
-                Assert.AreEqual(SampleText + SampleText, fileContents);
+                Assert.That(fileContents, Is.EqualTo(SampleText + SampleText));
                 return true;
             };
 
             var openResult = await file.Open(PackageFilename);
 
-            Assert.AreEqual(PackageOpenResultType.Success, openResult.Result);
+            Assert.That(openResult.Result, Is.EqualTo(PackageOpenResultType.Success));
         }
 
         [Test]
@@ -175,13 +175,13 @@ namespace DtronixPackage.Tests.IntegrationTests
 
             file.Reading += (reader, package) =>
             {
-                Assert.IsFalse(reader.FileExists(ContentFileName));
+                Assert.That(reader.FileExists(ContentFileName), Is.False);
                 return Task.FromResult(true);
             };
 
             var openResult = await file.Open(PackageFilename);
 
-            Assert.AreEqual(PackageOpenResultType.Success, openResult.Result);
+            Assert.That(openResult.Result, Is.EqualTo(PackageOpenResultType.Success));
         }
     }
 }

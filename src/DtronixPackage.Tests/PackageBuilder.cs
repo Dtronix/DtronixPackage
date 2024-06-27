@@ -99,11 +99,11 @@ namespace DtronixPackage.Tests
                         case ".txt":
                             var actualString = await GetStreamAsString(actualStream);
                             var expectedString = await GetStreamAsString(expectedStream);
-                            Assert.AreEqual(expectedString, actualString);
+                            Assert.That(actualString, Is.EqualTo(expectedString));
                             continue;
                     }
 
-                    FileAssert.AreEqual(expectedStream, actualStream, $"{actualEntry.FullName} file contents are not the same.");
+                    Assert.That(actualStream, Is.EqualTo(expectedStream), $"{actualEntry.FullName} file contents are not the same.");
                 }
 
                 if (expectedEntries.Count > 0)

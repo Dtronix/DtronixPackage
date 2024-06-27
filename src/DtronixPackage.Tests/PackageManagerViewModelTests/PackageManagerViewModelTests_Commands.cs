@@ -14,31 +14,31 @@ namespace DtronixPackage.Tests.PackageManagerViewModelTests
         [Test]
         public void PackageNotOpen_CanNotClose()
         {
-            Assert.IsFalse(ViewModel.CloseCommand.CanExecute(null));
+            Assert.That(ViewModel.CloseCommand.CanExecute(null), Is.False);
         }
 
         [Test]
         public void PackageNotOpen_CanNotSaveAs()
         {
-            Assert.IsFalse(ViewModel.SaveAsCommand.CanExecute(null));
+            Assert.That(ViewModel.SaveAsCommand.CanExecute(null), Is.False);
         }
 
         [Test]
         public void PackageNotOpen_CanNotSave()
         {
-            Assert.IsFalse(ViewModel.SaveCommand.CanExecute(null));
+            Assert.That(ViewModel.SaveCommand.CanExecute(null), Is.False);
         }
 
         [Test]
         public void PackageNotOpen_CanOpen()
         {
-            Assert.IsTrue(ViewModel.OpenCommand.CanExecute(null));
+            Assert.That(ViewModel.OpenCommand.CanExecute(null), Is.True);
         }
 
         [Test]
         public void PackageNotOpen_CanNew()
         {
-            Assert.IsTrue(ViewModel.NewCommand.CanExecute(null));
+            Assert.That(ViewModel.NewCommand.CanExecute(null), Is.True);
         }
 
         [Test]
@@ -73,28 +73,28 @@ namespace DtronixPackage.Tests.PackageManagerViewModelTests
         {
             ViewModel.BrowsingSave = args => args.Result = false;
             ViewModel.NewCommand.Execute(null);
-            Assert.IsFalse(await ViewModel.NewComplete.Task.Timeout(1000));
+            Assert.That(await ViewModel.NewComplete.Task.Timeout(1000), Is.False);
         }
 
         [Test]
         public async Task PackageNotOpen_NewSetsPackageProperty()
         {
             ViewModel.NewCommand.Execute(null);
-            Assert.IsTrue(await ViewModel.NewComplete.Task.Timeout(1000));
-            Assert.IsNotNull(ViewModel.Package);
+            Assert.That(await ViewModel.NewComplete.Task.Timeout(1000), Is.True);
+            Assert.That(ViewModel.Package, Is.Not.Null);
         }
 
         [Test]
         public async Task NewPackageOpen_Closes()
         {
             ViewModel.NewCommand.Execute(null);
-            Assert.IsTrue(await ViewModel.NewComplete.Task.Timeout(1000));
+            Assert.That(await ViewModel.NewComplete.Task.Timeout(1000), Is.True);
             ViewModel.CloseCommand.Execute(null);
 
             await ViewModel.CloseComplete.Task.Timeout(1000);
-            Assert.IsTrue(File.Exists(PackageFilename));
+            Assert.That(File.Exists(PackageFilename), Is.True);
             File.Delete(PackageFilename);
-            Assert.IsNull(ViewModel.Package);
+            Assert.That(ViewModel.Package, Is.Null);
         }
 
         [Test]
@@ -102,7 +102,7 @@ namespace DtronixPackage.Tests.PackageManagerViewModelTests
         {
             ViewModel.NewCommand.Execute(null);
             await ViewModel.NewComplete.Task.Timeout(1000);
-            Assert.IsTrue(ViewModel.CloseCommand.CanExecute(null));
+            Assert.That(ViewModel.CloseCommand.CanExecute(null), Is.True);
         }     
         
         [Test]
@@ -110,7 +110,7 @@ namespace DtronixPackage.Tests.PackageManagerViewModelTests
         {
             ViewModel.NewCommand.Execute(null);
             await ViewModel.NewComplete.Task.Timeout(1000);
-            Assert.IsTrue(ViewModel.SaveCommand.CanExecute(null));
+            Assert.That(ViewModel.SaveCommand.CanExecute(null), Is.True);
         }     
         
         [Test]
@@ -118,21 +118,21 @@ namespace DtronixPackage.Tests.PackageManagerViewModelTests
         {
             ViewModel.NewCommand.Execute(null);
             await ViewModel.NewComplete.Task.Timeout(1000);
-            Assert.IsTrue(ViewModel.SaveAsCommand.CanExecute(null));
+            Assert.That(ViewModel.SaveAsCommand.CanExecute(null), Is.True);
         }
 
         [Test]
         public void PackageOpen_CanOpen()
         {
             ViewModel.NewCommand.Execute(null);
-            Assert.IsTrue(ViewModel.OpenCommand.CanExecute(null));
+            Assert.That(ViewModel.OpenCommand.CanExecute(null), Is.True);
         }
 
         [Test]
         public void PackageOpen_CanNew()
         {
             ViewModel.NewCommand.Execute(null);
-            Assert.IsTrue(ViewModel.NewCommand.CanExecute(null));
+            Assert.That(ViewModel.NewCommand.CanExecute(null), Is.True);
         }
 
         
@@ -142,10 +142,10 @@ namespace DtronixPackage.Tests.PackageManagerViewModelTests
             void OnViewModelOnShowMessage(object sender, PackageMessageEventArgs args)
             {
                 success = args.Type == PackageMessageEventArgs.MessageType.YesNoCancel;
-                ViewModel.ShowMessage -= OnViewModelOnShowMessage;
+                ViewModel.ShowMessageEvent -= OnViewModelOnShowMessage;
             }
 
-            ViewModel.ShowMessage += OnViewModelOnShowMessage;
+            ViewModel.ShowMessageEvent += OnViewModelOnShowMessage;
             ViewModel.NewCommand.Execute(null);
             await ViewModel.NewComplete.Task.Timeout(1000);
 
@@ -165,7 +165,7 @@ namespace DtronixPackage.Tests.PackageManagerViewModelTests
                 await ViewModel.NewComplete.Task.Timeout(1000);
             });
 
-            Assert.IsTrue(result);
+            Assert.That(result, Is.True);
         }
 
         [Test]
@@ -179,7 +179,7 @@ namespace DtronixPackage.Tests.PackageManagerViewModelTests
                 await ViewModel.OpenComplete.Task.Timeout(1000);
             });
 
-            Assert.IsTrue(result);
+            Assert.That(result, Is.True);
         }
 
         [Test]
@@ -192,7 +192,7 @@ namespace DtronixPackage.Tests.PackageManagerViewModelTests
                 await ViewModel.CloseComplete.Task.Timeout(1000);
             });
 
-            Assert.IsTrue(result);
+            Assert.That(result, Is.True);
         }
 
         [Test]
@@ -204,7 +204,7 @@ namespace DtronixPackage.Tests.PackageManagerViewModelTests
                 await ViewModel.NewComplete.Task.Timeout(1000);
             });
 
-            Assert.IsFalse(result);
+            Assert.That(result, Is.False);
         }
 
 
@@ -217,7 +217,7 @@ namespace DtronixPackage.Tests.PackageManagerViewModelTests
                 await ViewModel.OpenComplete.Task.Timeout(1000);
             });
 
-            Assert.IsFalse(result);
+            Assert.That(result, Is.False);
         }
 
         [Test]
@@ -229,7 +229,7 @@ namespace DtronixPackage.Tests.PackageManagerViewModelTests
                 await ViewModel.CloseComplete.Task.Timeout(1000);
             });
 
-            Assert.IsFalse(result);
+            Assert.That(result, Is.False);
         }
 
 

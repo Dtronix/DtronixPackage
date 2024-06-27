@@ -1,25 +1,24 @@
 ﻿using System;
 
-namespace DtronixPackage
+namespace DtronixPackage;
+
+/// <summary>
+/// Contains the data for all lock files.
+/// </summary>
+public class FileLockContents
 {
     /// <summary>
-    /// Contains the data for all lock files.
+    /// Username of the person who is holding the lock.
     /// </summary>
-    public class FileLockContents
+    public string? Username { get; set; }
+
+    /// <summary>
+    /// Date when the file was locked.
+    /// </summary>
+    public DateTime DateOpened { get; set; }
+
+    public override string ToString()
     {
-        /// <summary>
-        /// Username of the person who is holding the lock.
-        /// </summary>
-        public string Username { get; set; }
-
-        /// <summary>
-        /// Date when the file was locked.
-        /// </summary>
-        public DateTime DateOpened { get; set; }
-
-        public override string ToString()
-        {
-            return $"DtronixPackageLock: {Username} [{DateOpened}]";
-        }
+        return $"DtronixPackageLock: {Username} [{DateOpened}]";
     }
 }

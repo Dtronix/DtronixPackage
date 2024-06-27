@@ -3,7 +3,7 @@ name: Build, Pack & Publish
 on:
   push:
     branches:
-      - '*'
+      - 'master'
     tags:
       - 'v*'
   pull_request:
@@ -12,7 +12,7 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest  
+    runs-on: windows-latest
                              
     steps:
     - name: Checkout
@@ -23,7 +23,7 @@ jobs:
     - name: Install .NET
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: 6.0.*
+        dotnet-version: 8.0.*
         source-url: https://api.nuget.org/v3/index.json
       env:
         NUGET_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
@@ -38,7 +38,7 @@ jobs:
       run: dotnet pack src/DtronixPackage -c Release -o ./artifacts
       
     - name: Export artifacts
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         path: artifacts/*
         

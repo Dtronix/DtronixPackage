@@ -42,6 +42,7 @@ namespace DtronixPackage.Tests.IntegrationTests
 
         }
 
+
         [OneTimeSetUp]
         public virtual void OneTimeSetup()
         {
@@ -88,7 +89,7 @@ namespace DtronixPackage.Tests.IntegrationTests
         [TearDown]
         public virtual void TearDown()
         {
-
+            TestComplete?.Dispose();
         }
 
         protected void WaitTest(int milliseconds  = 500)

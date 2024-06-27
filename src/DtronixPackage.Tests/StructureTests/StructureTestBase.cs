@@ -25,5 +25,11 @@ namespace DtronixPackage.Tests.StructureTests
             return Task.CompletedTask;
         }
 
+        [TearDown]
+        public void TearDown()
+        {
+            Package?.Dispose();
+        }
+
     }
 }

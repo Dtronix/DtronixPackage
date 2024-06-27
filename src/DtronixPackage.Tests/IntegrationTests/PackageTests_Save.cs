@@ -37,7 +37,7 @@ namespace DtronixPackage.Tests.IntegrationTests
             await using var fileStream = new FileStream(PackageFilename, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite);
             using var archive = new ZipArchive(fileStream);
 
-            Assert.AreEqual(saveMissMatch ? 2 : 1, archive.Entries.Count(e => e.FullName.EndsWith(ContentFileName)));
+            Assert.That(archive.Entries.Count(e => e.FullName.EndsWith(ContentFileName)), Is.EqualTo(saveMissMatch ? 2 : 1));
         }
 
         [Test]
@@ -82,7 +82,7 @@ namespace DtronixPackage.Tests.IntegrationTests
 
             package.Data.Children.Add(new PackageDataContractChild());
             await package.Save(PackageFilename);
-            Assert.IsFalse(package.IsContentModified);
+            Assert.That(package.IsContentModified, Is.False);
         }
 
         [Test]
@@ -106,7 +106,7 @@ namespace DtronixPackage.Tests.IntegrationTests
             await package.Save(PackageFilename);
             var secondPath = Path.Combine("saves/", Guid.NewGuid() + ".file");
             await package.Save(secondPath);
-            Assert.AreNotEqual(new FileInfo(secondPath).Length, 0, "File length was zero.");
+            Assert.That(new FileInfo(secondPath).Length, Is.Not.EqualTo(0), "File length was zero.");
         }
     }
 }
