@@ -1,11 +1,12 @@
 ﻿using System.Windows.Input;
 
-namespace DtronixPackage.ViewModel
+namespace DtronixPackage.ViewModel;
+
+public interface IActionCommand
 {
-    public interface IActionCommand : ICommand
-    {
-        string GestureText { get; }
-        KeyGesture Gesture { get; }
-        internal void SetCanExecute(bool value);
-    }
+    internal void SetCanExecute(bool value);
+    public bool CanExecute(object? parameter);
+    public void Execute(object? parameter);
+
+    
 }

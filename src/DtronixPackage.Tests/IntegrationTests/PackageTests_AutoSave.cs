@@ -70,7 +70,7 @@ namespace DtronixPackage.Tests.IntegrationTests
             await file.ConfigureAutoSave(0, -1, true);
 
             await Utilities.AssertFileExistWithin(tempSave);
-            Assert.IsFalse(file.IsDataModifiedSinceAutoSave);
+            Assert.That(file.IsDataModifiedSinceAutoSave, Is.False);
         }
 
         [Test]
@@ -81,9 +81,9 @@ namespace DtronixPackage.Tests.IntegrationTests
             {
                 TempPackagePathRequest = () => tempSave
             };
-            Assert.IsFalse(file.IsDataModifiedSinceAutoSave);
+            Assert.That(file.IsDataModifiedSinceAutoSave, Is.False);
             file.ContentModifiedOverride();
-            Assert.IsTrue(file.IsDataModifiedSinceAutoSave);
+            Assert.That(file.IsDataModifiedSinceAutoSave, Is.True);
         }
 
         [Test]
@@ -98,7 +98,7 @@ namespace DtronixPackage.Tests.IntegrationTests
             await file.ConfigureAutoSave(0, -1, true);
             await Utilities.AssertFileExistWithin(tempSave);
 
-            Assert.IsTrue(file.IsContentModified);
+            Assert.That(file.IsContentModified, Is.True);
         }
 
         [Test]
@@ -130,7 +130,7 @@ namespace DtronixPackage.Tests.IntegrationTests
 
                 lastWriteTime = new FileInfo(tempSave).LastWriteTime;
             }
-            Assert.AreNotEqual(initialWriteTime, lastWriteTime);
+            Assert.That(lastWriteTime, Is.Not.EqualTo(initialWriteTime));
 
             await file.ConfigureAutoSave(-1, -1, true);
         }

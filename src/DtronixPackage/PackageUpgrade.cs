@@ -2,41 +2,40 @@
 using System.IO.Compression;
 using System.Threading.Tasks;
 
-namespace DtronixPackage
+namespace DtronixPackage;
+
+public abstract class PackageUpgrade
 {
-    public abstract class PackageUpgrade
+    public PackageUpgradeVersion DependentPackageVersion { get; }
+
+    internal PackageUpgrade(PackageUpgradeVersion dependentPackageVersion)
     {
-        public PackageUpgradeVersion DependentPackageVersion { get; }
-
-        internal PackageUpgrade(PackageUpgradeVersion dependentPackageVersion)
-        {
-            DependentPackageVersion = dependentPackageVersion;
-        }
-
-        public Task<bool> Upgrade(ZipArchive archive)
-        {
-            return OnUpgrade(archive);
-        }
-
-        protected abstract Task<bool> OnUpgrade(ZipArchive archive);
+        DependentPackageVersion = dependentPackageVersion;
     }
 
-    public abstract class ApplicationPackageUpgrade : PackageUpgrade
+    public Task<bool> Upgrade(ZipArchive archive)
     {
-        public Version AppVersion { get; }
-
-        protected ApplicationPackageUpgrade(PackageUpgradeVersion dependentPackageVersion, Version appVersion)
-            : base(dependentPackageVersion)
-        {
-            AppVersion = appVersion;
-        }
+        return OnUpgrade(archive);
     }
 
-    internal abstract class InternalPackageUpgrade : PackageUpgrade
+    protected abstract Task<bool> OnUpgrade(ZipArchive archive);
+}
+
+public abstract class ApplicationPackageUpgrade : PackageUpgrade
+{
+    public Version AppVersion { get; }
+
+    protected ApplicationPackageUpgrade(PackageUpgradeVersion dependentPackageVersion, Version appVersion)
+        : base(dependentPackageVersion)
     {
-        protected InternalPackageUpgrade(PackageUpgradeVersion version)
-            : base(version)
-        {
-        }
+        AppVersion = appVersion;
+    }
+}
+
+internal abstract class InternalPackageUpgrade : PackageUpgrade
+{
+    protected InternalPackageUpgrade(PackageUpgradeVersion version)
+        : base(version)
+    {
     }
 }

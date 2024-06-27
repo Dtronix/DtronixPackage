@@ -46,7 +46,7 @@ namespace DtronixPackage.Tests.UpgradeTests
         {
             Package = await CreatePackage();
             UpgradeClass = new PackageUpgrade_1_1_0();
-            Assert.IsTrue(await UpgradeClass.Upgrade(Package));
+            Assert.That(await UpgradeClass.Upgrade(Package), Is.True);
         }
 
         [Test]
@@ -54,14 +54,14 @@ namespace DtronixPackage.Tests.UpgradeTests
         {
             Package = await CreatePackageLessSaveLog();
             UpgradeClass = new PackageUpgrade_1_1_0();
-            Assert.IsTrue(await UpgradeClass.Upgrade(Package));
+            Assert.That(await UpgradeClass.Upgrade(Package), Is.True);
         }
 
         [Test]
         public void UpgradeIgnoresBackups()
         {
-            Assert.IsTrue(Package.Entries.Any(e => e.FullName == "UpgradeTest-backup-0.1/save_log.json"));
-            Assert.IsFalse(Package.Entries.Any(e => e.FullName == "UpgradeTest-backup-0.1/changelog.json"));
+            Assert.That(Package.Entries.Any(e => e.FullName == "UpgradeTest-backup-0.1/save_log.json"), Is.True);
+            Assert.That(Package.Entries.Any(e => e.FullName == "UpgradeTest-backup-0.1/changelog.json"), Is.False);
         }
 
         [Test]
@@ -71,29 +71,29 @@ namespace DtronixPackage.Tests.UpgradeTests
             await using var stream = changelogJson.Open();
             var changelogEntries = await JsonSerializer.DeserializeAsync<PackageUpgrade_1_1_0.ChangelogEntry[]>(stream);
 
-            Assert.AreEqual("TestUser1", changelogEntries[0].Username);
-            Assert.AreEqual("GeneralComputer1", changelogEntries[0].ComputerName);
-            Assert.AreEqual(PackageUpgrade_1_1_0.ChangelogItemType.Save, changelogEntries[0].Type);
+            Assert.That(changelogEntries[0].Username, Is.EqualTo("TestUser1"));
+            Assert.That(changelogEntries[0].ComputerName, Is.EqualTo("GeneralComputer1"));
+            Assert.That(changelogEntries[0].Type, Is.EqualTo(PackageUpgrade_1_1_0.ChangelogItemType.Save));
 
-            Assert.AreEqual("TestUser2", changelogEntries[1].Username);
-            Assert.AreEqual("GeneralComputer2", changelogEntries[1].ComputerName);
-            Assert.AreEqual(PackageUpgrade_1_1_0.ChangelogItemType.Save, changelogEntries[1].Type);
+            Assert.That(changelogEntries[1].Username, Is.EqualTo("TestUser2"));
+            Assert.That(changelogEntries[1].ComputerName, Is.EqualTo("GeneralComputer2"));
+            Assert.That(changelogEntries[1].Type, Is.EqualTo(PackageUpgrade_1_1_0.ChangelogItemType.Save));
 
-            Assert.AreEqual("TestUser3", changelogEntries[2].Username);
-            Assert.AreEqual("GeneralComputer3", changelogEntries[2].ComputerName);
-            Assert.AreEqual(PackageUpgrade_1_1_0.ChangelogItemType.AutoSave, changelogEntries[2].Type);
+            Assert.That(changelogEntries[2].Username, Is.EqualTo("TestUser3"));
+            Assert.That(changelogEntries[2].ComputerName, Is.EqualTo("GeneralComputer3"));
+            Assert.That(changelogEntries[2].Type, Is.EqualTo(PackageUpgrade_1_1_0.ChangelogItemType.AutoSave));
         }
 
         [Test]
         public void DeletesSaveLog()
         {
-            Assert.IsFalse(Package.Entries.Any(e => e.FullName == "UpgradeTest/save_log.json"));
+            Assert.That(Package.Entries.Any(e => e.FullName == "UpgradeTest/save_log.json"), Is.False);
         }
 
         [Test]
         public void DeletesFileVersion()
         {
-            Assert.IsFalse(Package.Entries.Any(e => e.FullName == "file_version"));
+            Assert.That(Package.Entries.Any(e => e.FullName == "file_version"), Is.False);
         }
     }
 }

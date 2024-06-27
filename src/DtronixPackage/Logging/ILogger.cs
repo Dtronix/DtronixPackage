@@ -1,7 +1,6 @@
-﻿namespace DtronixPackage.Logging
+﻿namespace DtronixPackage.Logging;
+
+public interface ILogger
 {
-    public interface ILogger
-    {
-        void Log(LogEntry entry);
-    }
+    void Log(LogEntry entry);
 }

@@ -37,6 +37,12 @@ namespace DtronixPackage.Tests.PackageManagerViewModelTests
 
         }
 
+        [TearDown]
+        public void TearDown()
+        {
+            TestCompleted?.Dispose();
+        }
+
         protected async Task CreateApplicationPackage()
         {
             var package = new PackageManagerViewModelPackage();

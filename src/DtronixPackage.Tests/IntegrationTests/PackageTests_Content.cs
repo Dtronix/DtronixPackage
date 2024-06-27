@@ -15,7 +15,7 @@ namespace DtronixPackage.Tests.IntegrationTests
             await OpenWaitForCompletionPackage(async (reader, file) =>
             {
                 var readJson = await reader.ReadJson<SampleJsonObj>(ContentFileName);
-                Assert.AreEqual(SampleJson.Data, readJson.Data);
+                Assert.That(readJson.Data, Is.EqualTo(SampleJson.Data));
             });
         }
 
@@ -26,7 +26,7 @@ namespace DtronixPackage.Tests.IntegrationTests
 
             await OpenWaitForCompletionPackage(async (reader, file) =>
             {
-                Assert.AreEqual(SampleText, await reader.ReadString(ContentFileName));
+                Assert.That(await reader.ReadString(ContentFileName), Is.EqualTo(SampleText));
                 return true;
             });
         }
@@ -43,7 +43,7 @@ namespace DtronixPackage.Tests.IntegrationTests
                 byte[] readBuffer = new byte[10];
                 stream.Read(readBuffer);
 
-                Assert.AreEqual(SampleByteArray, readBuffer);
+                Assert.That(readBuffer, Is.EqualTo(SampleByteArray));
                 return Task.FromResult(true);
             });
         }
@@ -52,7 +52,7 @@ namespace DtronixPackage.Tests.IntegrationTests
         public void ContentIsInstancedOnPackageCreation()
         {
             var package = new DynamicPackage<SimplePackageContent>(new Version(1, 0), this, false, false);
-            Assert.NotNull(package.Content);
+            Assert.That(package.Content, Is.Not.Null);
         }
 
         [Test]
@@ -73,12 +73,12 @@ namespace DtronixPackage.Tests.IntegrationTests
             package.Close();
             Assert.Multiple(() =>
             {
-                Assert.AreEqual(default(byte[]), package.Content.Bytes);
-                Assert.AreEqual(default(byte), package.Content.Byte);
-                Assert.AreEqual(default(string), package.Content.String);
-                Assert.AreEqual(default(int), package.Content.Integer);
-                Assert.AreEqual(default(double), package.Content.Double);
-                Assert.AreEqual(default(DateTimeOffset), package.Content.DateTimeOffset);
+                Assert.That(package.Content.Bytes, Is.EqualTo(default(byte[])));
+                Assert.That(package.Content.Byte, Is.EqualTo(default(byte)));
+                Assert.That(package.Content.String, Is.EqualTo(default(string)));
+                Assert.That(package.Content.Integer, Is.EqualTo(default(int)));
+                Assert.That(package.Content.Double, Is.EqualTo(default(double)));
+                Assert.That(package.Content.DateTimeOffset, Is.EqualTo(default(DateTimeOffset)));
             });
         }
     }

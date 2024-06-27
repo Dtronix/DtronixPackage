@@ -13,21 +13,21 @@ namespace DtronixPackage.Tests.PackageManagerViewModelTests
         [Test]
         public async Task New_ReturnsTrueOnSuccessfulPathSelection()
         {
-            Assert.IsTrue(await ViewModel.New());
+            Assert.That(await ViewModel.New(), Is.True);
         }
 
         [Test]
         public async Task New_SetsPackageProperty()
         {
             await ViewModel.New();
-            Assert.IsNotNull(ViewModel.Package);
+            Assert.That(ViewModel.Package, Is.Not.Null);
         }
 
         [Test]
         public async Task New_ReturnsFalseOnPathSelectionCancellation()
         {
             ViewModel.BrowsingSave = args => args.Result = false;
-            Assert.IsFalse(await ViewModel.Open());
+            Assert.That(await ViewModel.Open(), Is.False);
         }
 
         [Test]
@@ -35,14 +35,14 @@ namespace DtronixPackage.Tests.PackageManagerViewModelTests
         {
             ViewModel.BrowsingOpen = args => args.Result = false;
             await ViewModel.Open();
-            Assert.IsNull(ViewModel.Package);
+            Assert.That(ViewModel.Package, Is.Null);
         }
 
         [Test]
         public async Task Open_ReturnsTrueOnSuccessfulPathSelection()
         {
             await CreateApplicationPackage();
-            Assert.IsTrue(await ViewModel.Open());
+            Assert.That(await ViewModel.Open(), Is.True);
         }
 
         [Test]
@@ -50,7 +50,7 @@ namespace DtronixPackage.Tests.PackageManagerViewModelTests
         {
             await CreateApplicationPackage();
             await ViewModel.Open();
-            Assert.IsNotNull(ViewModel.Package);
+            Assert.That(ViewModel.Package, Is.Not.Null);
         }
 
         [Test]
@@ -65,7 +65,7 @@ namespace DtronixPackage.Tests.PackageManagerViewModelTests
             };
             await ViewModel.Open();
 
-            Assert.IsTrue(ViewModel.Package.IsReadOnly);
+            Assert.That(ViewModel.Package.IsReadOnly, Is.True);
         }
 
         [Test]
@@ -80,7 +80,7 @@ namespace DtronixPackage.Tests.PackageManagerViewModelTests
             };
             await ViewModel.Open();
 
-            Assert.IsFalse(ViewModel.Package.IsReadOnly);
+            Assert.That(ViewModel.Package.IsReadOnly, Is.False);
         }
 
         [Test]
@@ -91,7 +91,7 @@ namespace DtronixPackage.Tests.PackageManagerViewModelTests
             // Lock the file.
             var fs = new FileStream(PackageFilename, FileMode.Open, FileAccess.ReadWrite, FileShare.Read);
 
-            ViewModel.ShowMessage += (sender, args) => args.Result = MessageBoxResult.Yes;
+            ViewModel.ShowMessageEvent += (sender, args) => args.Result = MessageBoxResult.Yes;
 
             ViewModel.BrowsingOpen = args =>
             {
@@ -101,7 +101,7 @@ namespace DtronixPackage.Tests.PackageManagerViewModelTests
             };
             await ViewModel.Open();
 
-            Assert.IsTrue(ViewModel.Package.IsReadOnly);
+            Assert.That(ViewModel.Package.IsReadOnly, Is.True);
         }
 
         [Test]
@@ -112,7 +112,7 @@ namespace DtronixPackage.Tests.PackageManagerViewModelTests
             // Lock the file.
             var fs = new FileStream(PackageFilename, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
 
-            ViewModel.ShowMessage += (sender, args) => args.Result = MessageBoxResult.Yes;
+            ViewModel.ShowMessageEvent += (sender, args) => args.Result = MessageBoxResult.Yes;
 
             ViewModel.BrowsingOpen = args =>
             {
@@ -120,7 +120,7 @@ namespace DtronixPackage.Tests.PackageManagerViewModelTests
                 args.Path = PackageFilename;
                 args.Result = true;
             };
-            Assert.IsFalse(await ViewModel.Open());
+            Assert.That(await ViewModel.Open(), Is.False);
         }
 
 
@@ -128,7 +128,7 @@ namespace DtronixPackage.Tests.PackageManagerViewModelTests
         public async Task Open_ReturnsFalseOnPathSelectionCancellation()
         {
             ViewModel.BrowsingSave = args => args.Result = false;
-            Assert.IsFalse(await ViewModel.Open());
+            Assert.That(await ViewModel.Open(), Is.False);
         }
 
         [Test]
@@ -136,20 +136,20 @@ namespace DtronixPackage.Tests.PackageManagerViewModelTests
         {
             ViewModel.BrowsingSave = args => args.Result = false;
             await ViewModel.New();
-            Assert.IsNull(ViewModel.Package);
+            Assert.That(ViewModel.Package, Is.Null);
         }
 
         [Test]
         public async Task TryClose_ClosesOpenPackage()
         {
             await ViewModel.New();
-            Assert.IsTrue(await ViewModel.TryClose());
+            Assert.That(await ViewModel.TryClose(), Is.True);
         }
 
         [Test]
         public async Task TryClose_ReturnsTrueWhenAlreadyClosed()
         {
-            Assert.IsTrue(await ViewModel.TryClose());
+            Assert.That(await ViewModel.TryClose(), Is.True);
         }
 
 

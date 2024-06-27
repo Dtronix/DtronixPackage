@@ -21,7 +21,7 @@ namespace DtronixPackage.Tests.StructureTests
                 ("DtronixPackage.Tests/version", "1.0.0"),
             });
             var result = await Package.Open(packagePath);
-            Assert.AreEqual(PackageOpenResult.Success, result);
+            Assert.That(result, Is.EqualTo(PackageOpenResult.Success));
         }
 
         [Test]
@@ -36,13 +36,13 @@ namespace DtronixPackage.Tests.StructureTests
 
             await Package.Open(packagePath);
 
-            Assert.AreEqual(1, Package.Changelog.Count);
+            Assert.That(Package.Changelog.Count, Is.EqualTo(1));
 
-            Assert.AreEqual("Test Note", Package.Changelog[0].Note);
-            Assert.AreEqual(DateTimeOffset.Parse("2020-08-03T17:42:58.0241586-04:00"), Package.Changelog[0].Time);
-            Assert.AreEqual("UserComputer", Package.Changelog[0].ComputerName);
-            Assert.AreEqual("TestUser1", Package.Changelog[0].Username);
-            Assert.AreEqual(ChangelogEntryType.Save, Package.Changelog[0].Type);
+            Assert.That(Package.Changelog[0].Note, Is.EqualTo("Test Note"));
+            Assert.That(Package.Changelog[0].Time, Is.EqualTo(DateTimeOffset.Parse("2020-08-03T17:42:58.0241586-04:00")));
+            Assert.That(Package.Changelog[0].ComputerName, Is.EqualTo("UserComputer"));
+            Assert.That(Package.Changelog[0].Username, Is.EqualTo("TestUser1"));
+            Assert.That(Package.Changelog[0].Type, Is.EqualTo(ChangelogEntryType.Save));
         }
 
         [Test]
@@ -57,18 +57,18 @@ namespace DtronixPackage.Tests.StructureTests
             Package.Reading = async (reader, package) =>
             {
                 var testJson = await reader.ReadJson<TestJsonObject>("test.json");
-                
-                Assert.AreEqual((byte)128, testJson.Byte);
-                Assert.AreEqual(new byte[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}, testJson.Bytes);
-                Assert.AreEqual(DateTimeOffset.Parse("2020-08-03T17:42:58.0241586-04:00"),testJson.DateTimeOffset);
-                Assert.AreEqual(1234.5678d, testJson.Double);
-                Assert.AreEqual(543210, testJson.Integer);
-                Assert.AreEqual("Test String", testJson.String);
+
+                Assert.That(testJson.Byte, Is.EqualTo((byte)128));
+                Assert.That(testJson.Bytes, Is.EqualTo(new byte[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}));
+                Assert.That(testJson.DateTimeOffset, Is.EqualTo(DateTimeOffset.Parse("2020-08-03T17:42:58.0241586-04:00")));
+                Assert.That(testJson.Double, Is.EqualTo(1234.5678d));
+                Assert.That(testJson.Integer, Is.EqualTo(543210));
+                Assert.That(testJson.String, Is.EqualTo("Test String"));
 
                 return true;
             };
 
-            Assert.AreEqual(PackageOpenResult.Success, await Package.Open(packagePath));
+            Assert.That(await Package.Open(packagePath), Is.EqualTo(PackageOpenResult.Success));
         }
 
         [Test]
@@ -83,11 +83,11 @@ namespace DtronixPackage.Tests.StructureTests
             });
             Package.Reading = async (reader, package) =>
             {
-                Assert.AreEqual(testString, await reader.ReadString("test.txt"));
+                Assert.That(await reader.ReadString("test.txt"), Is.EqualTo(testString));
                 return true;
             };
 
-            Assert.AreEqual(PackageOpenResult.Success, await Package.Open(packagePath));
+            Assert.That(await Package.Open(packagePath), Is.EqualTo(PackageOpenResult.Success));
         }  
         
         [Test]
@@ -105,11 +105,11 @@ namespace DtronixPackage.Tests.StructureTests
                 var readData = new byte[binaryData.Length];
                 await using var stream = reader.GetStream("test.bin");
                 await stream.ReadAsync(readData);
-                Assert.AreEqual(binaryData, readData);
+                Assert.That(readData, Is.EqualTo(binaryData));
                 return true;
             };
 
-            Assert.AreEqual(PackageOpenResult.Success, await Package.Open(packagePath));
+            Assert.That(await Package.Open(packagePath), Is.EqualTo(PackageOpenResult.Success));
         }
 
     }

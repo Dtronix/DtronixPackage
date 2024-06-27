@@ -21,6 +21,8 @@ namespace DtronixPackage.Tests.PackageManagerViewModelTests
         public TaskCompletionSource<bool> NewComplete;
         public TaskCompletionSource<bool> CloseComplete;
 
+        public event Action<TestPackageManagerViewModel, PackageMessageEventArgs> ShowMessageEvent;
+
         public void ResetCompleteTasks()
         {
             SaveAsComplete = new TaskCompletionSource<bool>();
@@ -35,6 +37,17 @@ namespace DtronixPackage.Tests.PackageManagerViewModelTests
         {
             Created += OnCreated;
             ResetCompleteTasks();
+        }
+
+        protected override Task ShowMessage(PackageMessageEventArgs message)
+        {
+            ShowMessageEvent?.Invoke(this, message);
+            return Task.CompletedTask;
+        }
+
+        protected override void InvokeOnDispatcher(Action action)
+        {
+            action?.Invoke();
         }
 
         private void OnCreated(object sender, PackageEventArgs<PackageManagerViewModelPackage> e)

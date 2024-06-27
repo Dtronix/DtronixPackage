@@ -33,15 +33,15 @@ namespace DtronixPackage.Tests.UpgradeTests
             };
 
 
-            Assert.AreEqual(0, upgradeManager.OrderedUpgrades.IndexOfKey(new Version(0, 1)));
-            Assert.AreEqual(1, upgradeManager.OrderedUpgrades.IndexOfKey(new Version(0, 2)));
-            Assert.AreEqual(2, upgradeManager.OrderedUpgrades.IndexOfKey(new Version(0, 3)));
-            Assert.AreEqual(3, upgradeManager.OrderedUpgrades.IndexOfKey(new Version(0, 4)));
+            Assert.That(upgradeManager.OrderedUpgrades.IndexOfKey(new Version(0, 1)), Is.EqualTo(0));
+            Assert.That(upgradeManager.OrderedUpgrades.IndexOfKey(new Version(0, 2)), Is.EqualTo(1));
+            Assert.That(upgradeManager.OrderedUpgrades.IndexOfKey(new Version(0, 3)), Is.EqualTo(2));
+            Assert.That(upgradeManager.OrderedUpgrades.IndexOfKey(new Version(0, 4)), Is.EqualTo(3));
 
-            Assert.AreEqual(4, upgradeManager.OrderedUpgrades.IndexOfKey(new Version(0, 5)));
-            Assert.AreEqual(5, upgradeManager.OrderedUpgrades.IndexOfKey(new Version(0, 6)));
-            Assert.AreEqual(6, upgradeManager.OrderedUpgrades.IndexOfKey(new Version(0, 7)));
-            Assert.AreEqual(7, upgradeManager.OrderedUpgrades.IndexOfKey(new Version(0, 8)));
+            Assert.That(upgradeManager.OrderedUpgrades.IndexOfKey(new Version(0, 5)), Is.EqualTo(4));
+            Assert.That(upgradeManager.OrderedUpgrades.IndexOfKey(new Version(0, 6)), Is.EqualTo(5));
+            Assert.That(upgradeManager.OrderedUpgrades.IndexOfKey(new Version(0, 7)), Is.EqualTo(6));
+            Assert.That(upgradeManager.OrderedUpgrades.IndexOfKey(new Version(0, 8)), Is.EqualTo(7));
         }
 
         [Test]
@@ -57,11 +57,11 @@ namespace DtronixPackage.Tests.UpgradeTests
                 new VersionedInterUpgrade(new PackageUpgradeVersion(0, 3))
             };
 
-            Assert.AreEqual(0, upgradeManager.OrderedUpgrades[new Version(0, 2)].IndexOfKey(new Version(0, 1)));
-            Assert.AreEqual(1, upgradeManager.OrderedUpgrades[new Version(0, 2)].IndexOfKey(new Version(0, 2)));
+            Assert.That(upgradeManager.OrderedUpgrades[new Version(0, 2)].IndexOfKey(new Version(0, 1)), Is.EqualTo(0));
+            Assert.That(upgradeManager.OrderedUpgrades[new Version(0, 2)].IndexOfKey(new Version(0, 2)), Is.EqualTo(1));
 
-            Assert.AreEqual(1, upgradeManager.OrderedUpgrades[new Version(0, 1)].IndexOfKey(new Version(0, 3)));
-            Assert.AreEqual(2, upgradeManager.OrderedUpgrades[new Version(0, 1)].IndexOfKey(new Version(0, 4)));
+            Assert.That(upgradeManager.OrderedUpgrades[new Version(0, 1)].IndexOfKey(new Version(0, 3)), Is.EqualTo(1));
+            Assert.That(upgradeManager.OrderedUpgrades[new Version(0, 1)].IndexOfKey(new Version(0, 4)), Is.EqualTo(2));
         }
 
         [Test]
@@ -75,8 +75,8 @@ namespace DtronixPackage.Tests.UpgradeTests
                 new VersionedAppUpgrade(new PackageUpgradeVersion(0, 2), new Version(0, 2))
             };
 
-            Assert.AreEqual(0, upgradeManager.OrderedUpgrades[new Version(0, 2)].IndexOfKey(new Version(0, 1)));
-            Assert.AreEqual(1, upgradeManager.OrderedUpgrades[new Version(0, 2)].IndexOfKey(new Version(0, 2)));
+            Assert.That(upgradeManager.OrderedUpgrades[new Version(0, 2)].IndexOfKey(new Version(0, 1)), Is.EqualTo(0));
+            Assert.That(upgradeManager.OrderedUpgrades[new Version(0, 2)].IndexOfKey(new Version(0, 2)), Is.EqualTo(1));
         }
 
         [Test]
@@ -98,7 +98,7 @@ namespace DtronixPackage.Tests.UpgradeTests
                     continue;
 
                 if (previous != null)
-                    Assert.Greater(appUpgrade.AppVersion, previous.AppVersion);
+                    Assert.That(appUpgrade.AppVersion, Is.GreaterThan(previous.AppVersion));
                 
                 previous = appUpgrade;
             }
@@ -155,11 +155,11 @@ namespace DtronixPackage.Tests.UpgradeTests
                 new VersionedAppUpgrade(new PackageUpgradeVersion(0, 1), new Version(0, 3))
             };
 
-            Assert.AreEqual(1, upgradeManager.OrderedUpgrades[new Version(0, 1)].IndexOfKey(new Version(0, 1)));
-            Assert.AreEqual(2, upgradeManager.OrderedUpgrades[new Version(0, 1)].IndexOfKey(new Version(0, 2)));
+            Assert.That(upgradeManager.OrderedUpgrades[new Version(0, 1)].IndexOfKey(new Version(0, 1)), Is.EqualTo(1));
+            Assert.That(upgradeManager.OrderedUpgrades[new Version(0, 1)].IndexOfKey(new Version(0, 2)), Is.EqualTo(2));
 
-            Assert.AreEqual(3, upgradeManager.OrderedUpgrades[new Version(0, 1)].IndexOfKey(new Version(0, 3)));
-            Assert.AreEqual(4, upgradeManager.OrderedUpgrades[new Version(0, 1)].IndexOfKey(new Version(0, 4)));
+            Assert.That(upgradeManager.OrderedUpgrades[new Version(0, 1)].IndexOfKey(new Version(0, 3)), Is.EqualTo(3));
+            Assert.That(upgradeManager.OrderedUpgrades[new Version(0, 1)].IndexOfKey(new Version(0, 4)), Is.EqualTo(4));
         }
 
         [Test]
@@ -171,7 +171,7 @@ namespace DtronixPackage.Tests.UpgradeTests
                 new VersionedInterUpgrade(new PackageUpgradeVersion(0, 3))
             };
 
-            Assert.AreEqual(1, upgradeManager.Count());
+            Assert.That(upgradeManager.Count(), Is.EqualTo(1));
         }
 
         [Test]
@@ -183,7 +183,7 @@ namespace DtronixPackage.Tests.UpgradeTests
                 new VersionedAppUpgrade(new PackageUpgradeVersion(0, 1), new Version(0, 4))
             };
 
-            Assert.AreEqual(1, upgradeManager.Count());
+            Assert.That(upgradeManager.Count(), Is.EqualTo(1));
         }
 
         private class VersionedInterUpgrade : InternalPackageUpgrade

@@ -13,12 +13,12 @@ namespace DtronixPackage.Tests
     {
         public static async Task AssertFileExistWithin(string path, int timeout = 5000)
         {
-            Assert.IsTrue(await FileExistWithin(path, timeout), $"File {path} does not exist.");
+            Assert.That(await FileExistWithin(path, timeout), Is.True, $"File {path} does not exist.");
         }
 
         public static async Task AssertFileDoesNotExistWithin(string path, int timeout = 100)
         {
-            Assert.IsFalse(await FileExistWithin(path, timeout), $"File {path} exists.");
+            Assert.That(await FileExistWithin(path, timeout), Is.False, $"File {path} exists.");
         }
 
         public static async Task<bool> FileExistWithin(string path, int timeout)
