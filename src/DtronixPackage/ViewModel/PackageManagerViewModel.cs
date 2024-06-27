@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
@@ -13,7 +12,7 @@ public abstract class PackageManagerViewModel<TPackage, TPackageContent> : INoti
     private readonly string _appName;
     public event PropertyChangedEventHandler? PropertyChanged;
     private TPackage? _package;
-    private string _windowTitle;
+    private string _windowTitle = null!;
     private bool _addedModifiedText;
 
     private int _autoSavePeriod = 60 * 1000;
@@ -77,10 +76,10 @@ public abstract class PackageManagerViewModel<TPackage, TPackageContent> : INoti
         }
     }
 
-    public event EventHandler<PackageEventArgs<TPackage>> Created;
-    public event EventHandler Closed;
-    public event EventHandler<PackageEventArgs<TPackage>> Opened;
-    public event EventHandler<PackageEventArgs<TPackage>> PackageChanged;
+    public event EventHandler<PackageEventArgs<TPackage>>? Created;
+    public event EventHandler? Closed;
+    public event EventHandler<PackageEventArgs<TPackage>>? Opened;
+    public event EventHandler<PackageEventArgs<TPackage>>? PackageChanged;
         
     public IActionCommand SaveCommand { get; }
     public IActionCommand SaveAsCommand { get; }
@@ -135,7 +134,7 @@ public abstract class PackageManagerViewModel<TPackage, TPackageContent> : INoti
     /// <returns>True on successful selection of package destination. False to cancel the saving process.</returns>
     protected abstract bool BrowseSaveFile(out string path);
 
-    protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
+    protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
@@ -309,7 +308,7 @@ public abstract class PackageManagerViewModel<TPackage, TPackageContent> : INoti
             {
                 var message = new PackageMessageEventArgs(
                     PackageMessageEventArgs.MessageType.OK,
-                    $"Can't open file. Failed upgrading file.\r\n\r\n{result.Exception.Message}",
+                    $"Can't open file. Failed upgrading file.\r\n\r\n{result.Exception?.Message}",
                     "Error Opening");
 
                 await ShowMessage(message);
@@ -320,7 +319,7 @@ public abstract class PackageManagerViewModel<TPackage, TPackageContent> : INoti
             {
                 var message = new PackageMessageEventArgs(
                     PackageMessageEventArgs.MessageType.OK,
-                    $"Scheduler file does not exist.\r\n\r\n{result.Exception.Message}",
+                    $"Scheduler file does not exist.\r\n\r\n{result.Exception?.Message}",
                     "File not Found");
 
                 await ShowMessage(message);
@@ -399,7 +398,7 @@ public abstract class PackageManagerViewModel<TPackage, TPackageContent> : INoti
         return message.Result;
     }
 
-    internal virtual async Task<bool> SaveInternal(TPackage package)
+    internal virtual async Task<bool> SaveInternal(TPackage? package)
     {
         if (package == null)
             return false;
@@ -418,7 +417,7 @@ public abstract class PackageManagerViewModel<TPackage, TPackageContent> : INoti
         {
             await ShowMessage(new PackageMessageEventArgs(
                 PackageMessageEventArgs.MessageType.OK,
-                "Could not save package.\r\n\r\nError:"+result.Exception.ToString(),
+                "Could not save package.\r\n\r\nError:"+result.Exception,
                 "Error Saving"));
         }
             
@@ -430,8 +429,11 @@ public abstract class PackageManagerViewModel<TPackage, TPackageContent> : INoti
         return SaveInternal(Package);
     }
 
-    internal virtual async Task<bool> SaveAsInternal(TPackage package)
+    internal virtual async Task<bool> SaveAsInternal(TPackage? package)
     {
+        if (package == null)
+            return false;
+
         if (BrowseSaveFile(out var path))
         {
             var result = await package.Save(path);
@@ -499,7 +501,7 @@ public abstract class PackageManagerViewModel<TPackage, TPackageContent> : INoti
             SaveCommand.SetCanExecute(Package?.IsContentModified == true);
         });
 
-        if (_addedModifiedText || !Package.IsContentModified)
+        if (_addedModifiedText || Package?.IsContentModified == false)
             return;
 
         _addedModifiedText = true;

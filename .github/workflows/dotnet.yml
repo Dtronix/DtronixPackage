@@ -38,7 +38,7 @@ jobs:
       run: dotnet pack src/DtronixPackage -c Release -o ./artifacts
       
     - name: Export artifacts
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         path: artifacts/*
         

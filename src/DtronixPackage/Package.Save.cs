@@ -1,9 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using DtronixPackage.Logging;
 
@@ -58,7 +55,7 @@ public abstract partial class Package<TContent> : IPackage
                 {
                     _lockFile.Close();
                     _lockFile = null;
-                    File.Delete(_lockFilePath);
+                    File.Delete(_lockFilePath!);
                 }
                 catch (Exception e)
                 {
@@ -101,7 +98,7 @@ public abstract partial class Package<TContent> : IPackage
     private async Task<PackageSaveResult> SaveInternal(bool autoSave)
     {
         Logger?.ConditionalTrace($"SaveInternal(autoSave:{autoSave})");
-        PackageSaveResult returnValue = null;
+        PackageSaveResult? returnValue = null;
         try
         {
             // TODO: Reuse existing archive when saving from a read-only package.  Prevents duplication of the MS.
@@ -115,13 +112,13 @@ public abstract partial class Package<TContent> : IPackage
                 await using (var packageVersionStream = writer.CreateEntityStream("version", false))
                 {
                     await using var packageVersionStreamWriter = new StreamWriter(packageVersionStream);
-                    await packageVersionStreamWriter.WriteAsync(CurrentPkgVersion.ToString());
+                    await packageVersionStreamWriter.WriteAsync(CurrentPkgVersion?.ToString());
                 }
 
                 await OnWrite(writer);
 
                 // Write package version file
-                await writer.Write("version", CurrentAppVersion.ToString());
+                await writer.Write("version", CurrentAppVersion?.ToString() ?? "0.0.0.0");
 
                 var log = new ChangelogEntry
                 (autoSave ? ChangelogEntryType.AutoSave : ChangelogEntryType.Save,
@@ -197,10 +194,15 @@ public abstract partial class Package<TContent> : IPackage
 
             if (!autoSave)
             {
+
+
                 // Create a new package/overwrite existing if a backup was not created.
                 // Retain the lock on the package.
                 if (_openPackageStream == null)
                 {
+                    if (SavePath == null)
+                        throw new Exception("Save path can't be null when saving");
+
                     // Create a new source package.
                     _openPackageStream = new FileStream(SavePath, FileMode.Create, FileAccess.ReadWrite, FileShare.Read);
                 }
@@ -217,7 +219,17 @@ public abstract partial class Package<TContent> : IPackage
                 Logger?.ConditionalTrace($"Creating AutoSave package {AutoSavePath}.");
             }
 
-            var destinationStream = autoSave ? File.Create(AutoSavePath) : _openPackageStream;
+
+            FileStream? destinationStream;
+            if (autoSave)
+            {
+                if (AutoSavePath == null)
+                    throw new Exception($"{nameof(AutoSavePath)} Can't be null when auto-saving.");
+
+                destinationStream = File.Create(AutoSavePath);
+            }
+            else
+                destinationStream = _openPackageStream;
 
             if (autoSave)
             {
@@ -275,7 +287,7 @@ public abstract partial class Package<TContent> : IPackage
                 IsReadOnly = false;
             }
 
-            Logger?.ConditionalTrace($"InternalSave return: {returnValue}");
+            Logger?.ConditionalTrace($"InternalSave return: {returnValue ?? PackageSaveResult.Failure}");
             Logger?.ConditionalTrace("Released _packageOperationSemaphore");
             _packageOperationSemaphore.Release();
         }
@@ -361,7 +373,7 @@ public abstract partial class Package<TContent> : IPackage
         }
     }
 
-    private void AutoSaveElapsed(object state)
+    private void AutoSaveElapsed(object? state)
     {
         Logger?.ConditionalTrace("AutoSaveElapsed()");
         _ = AutoSave(false);

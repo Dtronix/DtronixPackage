@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
-using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -12,7 +11,7 @@ using DtronixPackage.Upgrades;
 
 namespace DtronixPackage;
 
-public abstract partial class Package<TContent> : IPackage
+public abstract partial class Package<TContent> 
     where TContent : PackageContent, new()
 {
 
@@ -44,7 +43,7 @@ public abstract partial class Package<TContent> : IPackage
 
         await _packageOperationSemaphore.WaitAsync(cancellationToken);
         var isMonitorEnabledOriginalValue = IsMonitorEnabled;
-        PackageOpenResult returnValue = null;
+        PackageOpenResult? returnValue = null;
 
         try
         {
@@ -158,7 +157,7 @@ public abstract partial class Package<TContent> : IPackage
             }
             catch (Exception e)
             {
-                return returnValue = new PackageOpenResult(PackageOpenResultType.Corrupted, e, PackageAppVersion);
+                return returnValue = new PackageOpenResult(PackageOpenResultType.Corrupted, e, PackageAppVersion ?? new Version(0,0,0,0));
             }
 
             var upgradeManager = new UpgradeManager(_openPkgVersion, PackageAppVersion);
@@ -188,9 +187,11 @@ public abstract partial class Package<TContent> : IPackage
                         options: null,
                         cancellationToken);
 
-                    foreach (var changelogItem in logItems)
-                        _changelog.Add(changelogItem);
-
+                    if (logItems != null)
+                        foreach (var changelogItem in logItems)
+                            _changelog.Add(changelogItem);
+                    else
+                        throw new Exception("Could not parse Changelogs");
                 }
                 catch (Exception e)
                 {
@@ -268,7 +269,7 @@ public abstract partial class Package<TContent> : IPackage
         }
         catch (Exception e)
         {
-            return returnValue = new PackageOpenResult(PackageOpenResultType.UnknownFailure, e, PackageAppVersion);
+            return returnValue = new PackageOpenResult(PackageOpenResultType.UnknownFailure, e, PackageAppVersion ?? new Version(0,0,0,0));
         }
         finally
         {
@@ -285,8 +286,11 @@ public abstract partial class Package<TContent> : IPackage
     }
 
 
-    private async Task<PackageOpenResult> ApplyUpgrades(IEnumerable<PackageUpgrade> upgrades)
+    private async Task<PackageOpenResult?> ApplyUpgrades(IEnumerable<PackageUpgrade> upgrades)
     {
+        if(_openArchive == null)
+            return new PackageOpenResult(PackageOpenResultType.FileNotFound);
+
         foreach (var upgrade in upgrades)
         {
             var isPackageUpgrade = upgrade is InternalPackageUpgrade;
@@ -300,7 +304,7 @@ public abstract partial class Package<TContent> : IPackage
                 {
                     // Upgrade soft failed, log it and notify the opener.
                     Logger?.Error($"Unable to perform{(isPackageUpgrade ? " package" : " application")} upgrade of package to version {upgrade.DependentPackageVersion}.");
-                    return new PackageOpenResult(PackageOpenResultType.UpgradeFailure, PackageAppVersion);
+                    return new PackageOpenResult(PackageOpenResultType.UpgradeFailure, PackageAppVersion ?? new Version(0,0,0,0));
                 }
 
                 _changelog.Add(new ChangelogEntry(isPackageUpgrade
@@ -319,7 +323,7 @@ public abstract partial class Package<TContent> : IPackage
             {
                 // Upgrade hard failed.
                 Logger?.Error(e, $"Unable to perform{(isPackageUpgrade ? " package" : " application")} upgrade of package to version {upgrade.DependentPackageVersion}.");
-                return new PackageOpenResult(PackageOpenResultType.UpgradeFailure, e, PackageAppVersion);
+                return new PackageOpenResult(PackageOpenResultType.UpgradeFailure, e, PackageAppVersion ?? new Version(0,0,0,0));
             }
 
             // Since we did perform an upgrade, set set that the package has been changed.

@@ -5,14 +5,12 @@ using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.IO.Compression;
-using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using DtronixPackage.Logging;
 using DtronixPackage.RecursiveChangeNotifier;
-using DtronixPackage.Upgrades;
 
 namespace DtronixPackage;
 
@@ -21,17 +19,17 @@ namespace DtronixPackage;
 /// </summary>
 /// <typeparam name="TContent"></typeparam>
 [SuppressMessage("ReSharper", "StaticMemberInGenericType")]
-public abstract partial class Package<TContent> : IPackage 
+public abstract partial class Package<TContent> 
     where TContent : PackageContent, new()
 {
     private readonly string _appName;
     private readonly bool _preserveUpgrade;
     private readonly bool _useLockFile;
-    private ZipArchive _openArchive;
-    private FileStream _lockFile;
-    private FileStream _openPackageStream;
+    private ZipArchive? _openArchive;
+    private FileStream? _lockFile;
+    private FileStream? _openPackageStream;
 
-    private string _lockFilePath;
+    private string? _lockFilePath;
     private readonly SemaphoreSlim _packageOperationSemaphore = new(1, 1);
     private readonly List<ChangelogEntry> _changelog = new();
     private readonly Timer _autoSaveTimer;
@@ -41,22 +39,22 @@ public abstract partial class Package<TContent> : IPackage
     private int _autoSaveDueTime = 60 * 1000;
     private bool _disposed;
     private bool _isContentModified;
-    private Version _openPkgVersion;
+    private Version? _openPkgVersion;
 
-    protected static ILogger Logger;
+    protected static ILogger? Logger;
 
-    internal static readonly Version CurrentPkgVersion 
+    internal static readonly Version? CurrentPkgVersion 
         = typeof(IPackage).Assembly.GetName().Version;
 
     /// <summary>
     /// Called upon closure of a package.
     /// </summary>
-    public event EventHandler<EventArgs> Closed;
+    public event EventHandler<EventArgs>? Closed;
 
     /// <summary>
     /// Called upon closure of a package.
     /// </summary>
-    public event EventHandler MonitoredChanged;
+    public event EventHandler? MonitoredChanged;
 
     /// <summary>
     /// Contains a log of all the times this package has been saved.
@@ -66,12 +64,12 @@ public abstract partial class Package<TContent> : IPackage
     /// <summary>
     /// Opened package application version.
     /// </summary>
-    public Version PackageAppVersion { get; private set; }
+    public Version? PackageAppVersion { get; private set; }
 
     /// <summary>
     /// Current version of the application.
     /// </summary>
-    public Version CurrentAppVersion { get; }
+    public Version? CurrentAppVersion { get; }
         
     /// <summary>
     /// If set to true, a ".BAK" package will be created with the previously saved package.
@@ -81,7 +79,7 @@ public abstract partial class Package<TContent> : IPackage
     /// <summary>
     /// Path to save the current package.
     /// </summary>
-    public string SavePath { get; private set; }
+    public string? SavePath { get; private set; }
 
     /// <summary>
     /// True if this package is in a read only state and can not be saved to the same package.
@@ -150,6 +148,8 @@ public abstract partial class Package<TContent> : IPackage
     /// </summary>
     public TContent Content { get; }
 
+    public string? CurrentUserName { get; set; }
+
     /// <summary>
     /// Time this package was initially opened/created.
     /// </summary>
@@ -158,7 +158,7 @@ public abstract partial class Package<TContent> : IPackage
     /// <summary>
     /// Path to the auto-save package for this package.
     /// </summary>
-    protected string AutoSavePath { get; private set; }
+    protected string? AutoSavePath { get; private set; }
         
     /// <summary>
     /// Options for serialization of all objects.
@@ -226,6 +226,9 @@ public abstract partial class Package<TContent> : IPackage
         // Create the lock file and hold on to the lock until closed.
         if (_lockFile == null)
         {
+            if (_lockFilePath == null)
+                return false;
+
             try
             {
                 // Create the lock file and hold on to the lock until closed.
@@ -245,7 +248,7 @@ public abstract partial class Package<TContent> : IPackage
 
         await JsonSerializer.SerializeAsync(_lockFile, new FileLockContents
         {
-            Username = System.Security.Principal.WindowsIdentity.GetCurrent().Name,
+            Username = CurrentUserName,
             DateOpened = DateTime.Now
         });
 
@@ -261,7 +264,7 @@ public abstract partial class Package<TContent> : IPackage
     /// If it can not be deleted, notify the user and return false.
     /// </summary>
     /// <returns>True if the lock file exists, false otherwise.  Lock file information if it was read.</returns>
-    private async Task<(bool lockExists, FileLockContents lockFile)> LockExists()
+    private async Task<(bool lockExists, FileLockContents? lockFile)> LockExists()
     {
         // Create/read the lock file.
         if (!File.Exists(_lockFilePath)) 
@@ -294,7 +297,7 @@ public abstract partial class Package<TContent> : IPackage
         }
     }
 
-    protected void MonitorRegister<T>(T obj)
+    protected void MonitorRegister<T>(T? obj)
         where T : INotifyPropertyChanged
     {
         if (obj == null)
@@ -311,29 +314,28 @@ public abstract partial class Package<TContent> : IPackage
 
     }
 
-    protected void MonitorDeregister<T>(T obj)
+    protected void MonitorDeregister<T>(T? obj)
         where T : INotifyPropertyChanged
     {
         if (obj == null)
             return;
 
         // Do nothing if it is not registered.
-        if (!_monitorListeners.TryGetValue(obj, out var listener))
+        if (!_monitorListeners.Remove(obj, out var listener))
             return;
 
-        _monitorListeners.Remove(obj);
         listener.CollectionChanged -= MonitorListenerOnCollectionChanged;
         listener.PropertyChanged -= MonitorListenerOnPropertyChanged;
         listener.Dispose();
     }
 
-    protected virtual void MonitorListenerOnPropertyChanged(object sender, PropertyChangedEventArgs e)
+    protected virtual void MonitorListenerOnPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if(IsMonitorEnabled)
             DataModified();
     }
 
-    protected virtual  void MonitorListenerOnCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+    protected virtual  void MonitorListenerOnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
         if(IsMonitorEnabled)
             DataModified();
@@ -343,7 +345,7 @@ public abstract partial class Package<TContent> : IPackage
     /// Whatever changes are made inside the action are not reported back to the monitor.
     /// </summary>
     /// <param name="action">Action to perform.</param>
-    public void MonitorIgnore(Action action)
+    public void MonitorIgnore(Action? action)
     {
         var originalValue = IsMonitorEnabled;
         IsMonitorEnabled = false;

@@ -1,9 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
+﻿using System.IO;
 using System.IO.Compression;
 using System.Linq;
-using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 
@@ -29,7 +26,7 @@ public class PackageReader
     /// </summary>
     /// <param name="path">Path to the file inside the package.  Case sensitive.</param>
     /// <returns>Stream on existing file.  Null otherwise.</returns>
-    public Stream GetStream(string path)
+    public Stream? GetStream(string path)
     {
         var file = _archive.Entries.FirstOrDefault(f => f.FullName == _appName + "/" + path);
         return file?.Open();
@@ -40,9 +37,13 @@ public class PackageReader
     /// </summary>
     /// <param name="path">Path to the file inside the zip.  Case sensitive.</param>
     /// <returns>Stream on existing file.  Null otherwise.</returns>
-    public async Task<string> ReadString(string path)
+    public async Task<string?> ReadString(string path)
     {
         await using var stream = GetStream(path);
+
+        if (stream == null)
+            return null;
+
         using var sr = new StreamReader(stream);
         return await sr.ReadToEndAsync();
     }
@@ -53,9 +54,12 @@ public class PackageReader
     /// <typeparam name="T">Type of JSON file to convert into.</typeparam>
     /// <param name="path">Path to open.</param>
     /// <returns>Decoded JSON object.</returns>
-    public async ValueTask<T> ReadJson<T>(string path)
+    public async ValueTask<T?> ReadJson<T>(string path)
     {
         await using var stream = GetStream(path);
+        if (stream == null)
+            return default;
+
         return await JsonSerializer.DeserializeAsync<T>(stream, _serializerOptions);
     }
 
@@ -64,10 +68,14 @@ public class PackageReader
     /// </summary>
     /// <param name="path">Path to open.</param>
     /// <returns>Decoded JSON object.</returns>
-    public Task<JsonDocument> ReadJsonDocument(string path)
+    public Task<JsonDocument?> ReadJsonDocument(string path)
     {
         using var stream = GetStream(path);
-        return JsonDocument.ParseAsync(stream);
+
+        if (stream == null)
+            return Task.FromResult((JsonDocument?)null);
+
+        return JsonDocument.ParseAsync(stream)!;
     }
 
     /// <summary>

@@ -1,6 +1,4 @@
-﻿using System.Windows.Input;
-
-namespace DtronixPackage.ViewModel;
+﻿namespace DtronixPackage.ViewModel;
 
 public interface IActionCommand
 {

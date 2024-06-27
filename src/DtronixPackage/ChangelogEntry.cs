@@ -12,12 +12,12 @@ public class ChangelogEntry
     /// <summary>
     /// Username active while saving.
     /// </summary>
-    public string Username { get; set; }
+    public string? Username { get; set; }
 
     /// <summary>
     /// Active computer name which saved the file.
     /// </summary>
-    public string ComputerName { get; set; }
+    public string? ComputerName { get; set; }
 
     /// <summary>
     /// Time of the save.
@@ -27,7 +27,7 @@ public class ChangelogEntry
     /// <summary>
     /// Contains additional information about this save.
     /// </summary>
-    public string Note { get; set; }
+    public string? Note { get; set; }
 
     public ChangelogEntry(ChangelogEntryType type, string username, string computerName, DateTimeOffset time)
     {

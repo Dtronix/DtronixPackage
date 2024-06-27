@@ -25,12 +25,12 @@ public interface IPackage : IDisposable
     /// <summary>
     /// Opened package application version.
     /// </summary>
-    Version PackageAppVersion { get; }
+    Version? PackageAppVersion { get; }
 
     /// <summary>
     /// Current version of the application.
     /// </summary>
-    Version CurrentAppVersion { get; }
+    Version? CurrentAppVersion { get; }
 
     /// <summary>
     /// If set to true, a ".BAK" package will be created with the previously saved package.
@@ -40,7 +40,7 @@ public interface IPackage : IDisposable
     /// <summary>
     /// Path to save the current package.
     /// </summary>
-    string SavePath { get; }
+    string? SavePath { get; }
 
     /// <summary>
     /// True if this package is in a read only state and can not be saved to the same package.
