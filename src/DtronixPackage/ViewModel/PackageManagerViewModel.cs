@@ -117,22 +117,18 @@ public abstract class PackageManagerViewModel<TPackage, TPackageContent> : INoti
 
     protected abstract void InvokeOnDispatcher(Action action);
 
+
     /// <summary>
-    /// Called when browsing for a package to open.  Normally paired with OpenFileDialog
+    /// Called when browsing for a package to open.
     /// </summary>
-    /// <remarks>Normally paired with SaveFileDialog</remarks>
-    /// <param name="path">Path of the package to open.  Must exist.</param>
-    /// <param name="openReadOnly">Set to true to open the package in a read-only state; False to open normally.</param>
-    /// <returns>True on successful opening of package. False to cancel the opening process.</returns>
-    protected abstract bool BrowseOpenFile(out string path, out bool openReadOnly);
+    /// <returns>Result of the open process. Success will be set to false if the opening process should be canceled.</returns>
+    protected abstract ValueTask<BrowseFileResult> BrowseOpenFile();
 
     /// <summary>
     /// Called when browsing for destination to save a package.
     /// </summary>
-    /// <remarks>Normally paired with SaveFileDialog</remarks>
-    /// <param name="path">Destination path for the package to save.</param>
-    /// <returns>True on successful selection of package destination. False to cancel the saving process.</returns>
-    protected abstract bool BrowseSaveFile(out string path);
+    /// <returns>Result of the open process. Success will be set to false if the saving process should be canceled.</returns>
+    protected abstract ValueTask<BrowseFileResult> BrowseSaveFile();
 
     protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
     {
@@ -268,12 +264,12 @@ public abstract class PackageManagerViewModel<TPackage, TPackageContent> : INoti
         if (!await TryClose())
             return false;
 
-        var result = BrowseOpenFile(out var path, out var readOnly);
+        var result = await BrowseOpenFile();
 
-        if (result != true)
+        if (result.Success != true)
             return false;
 
-        return await Open(path, readOnly);
+        return await Open(result.Path, result.OpenReadOnly);
     }
 
     public virtual async Task<bool> Open(string path, bool forceReadOnly)
@@ -434,9 +430,11 @@ public abstract class PackageManagerViewModel<TPackage, TPackageContent> : INoti
         if (package == null)
             return false;
 
-        if (BrowseSaveFile(out var path))
+        var browseResult = await BrowseSaveFile();
+
+        if (browseResult.Success)
         {
-            var result = await package.Save(path);
+            var result = await package.Save(browseResult.Path);
 
             switch (result.SaveResult)
             {

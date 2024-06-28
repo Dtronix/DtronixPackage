@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Reflection.Metadata.Ecma335;
 using System.Text;
 using System.Threading.Tasks;
 using DtronixPackage.ViewModel;
@@ -56,21 +57,27 @@ namespace DtronixPackage.Tests.PackageManagerViewModelTests
             e.Package.Opening = PackageOpening;
         }
 
-        protected override bool BrowseOpenFile(out string path, out bool openReadOnly)
+        protected override async ValueTask<BrowseFileResult> BrowseOpenFile()
         {
             var args = new BrowseEventArgs();
             BrowsingOpen?.Invoke(args);
-            path = args.Path;
-            openReadOnly = args.ReadOnly;
-            return args.Result;
+            return new BrowseFileResult()
+            {
+                Success = args.Result,
+                Path = args.Path,
+                OpenReadOnly = args.ReadOnly
+            };
         }
 
-        protected override bool BrowseSaveFile(out string path)
+        protected override async ValueTask<BrowseFileResult> BrowseSaveFile()
         {
             var args = new BrowseEventArgs();
             BrowsingSave?.Invoke(args);
-            path = args.Path;
-            return args.Result;
+            return new BrowseFileResult()
+            {
+                Success = args.Result,
+                Path = args.Path
+            };
         }
 
         internal override async Task<bool> SaveAsInternal(PackageManagerViewModelPackage package)
