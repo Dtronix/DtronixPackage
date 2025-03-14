@@ -122,6 +122,6 @@ internal class CollectionChangeListener : ChangeListener
     {
         ClearCollection();
 
-        _value.CollectionChanged -= Value_CollectionChanged;
+        _value.CollectionChanged -= Value_CollectionChanged!;
     }
 }

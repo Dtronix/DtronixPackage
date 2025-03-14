@@ -31,14 +31,14 @@ internal class ChildChangeListener : ChangeListener
 
     private void Subscribe()
     {
-        _value.PropertyChanged += Value_PropertyChanged;
+        _value.PropertyChanged += Value_PropertyChanged!;
 
         foreach (var property in _type.GetTypeInfo().DeclaredProperties
                      .Where(p => !p.GetIndexParameters().Any()))
         {
             if (!IsPubliclyReadable(property))
                 continue;
-            if (!IsNotifier(property.GetValue(obj: _value)))
+            if (!IsNotifier(property.GetValue(obj: _value)!))
                 continue;
 
             ResetChildListener(property.Name);
@@ -129,7 +129,7 @@ internal class ChildChangeListener : ChangeListener
     /// </summary>
     protected override void Unsubscribe()
     {
-        _value.PropertyChanged -= Value_PropertyChanged;
+        _value.PropertyChanged -= Value_PropertyChanged!;
 
         foreach (var binderKey in _childListeners.Keys.Where(binderKey => _childListeners[binderKey] != null))
         {

@@ -18,8 +18,8 @@ namespace DtronixPackage.Upgrades;
 internal class PackageUpgrade_1_1_0 : InternalPackageUpgrade
 {
     internal class SaveLogEntry {
-        public string Username { get; set; } 
-        public string ComputerName { get; set; } 
+        public string Username { get; set; } = null!;
+        public string ComputerName { get; set; } = null!;
         public DateTime Time { get; set; } 
         public bool? AutoSave { get; set; }
 
@@ -40,10 +40,10 @@ internal class PackageUpgrade_1_1_0 : InternalPackageUpgrade
     internal class ChangelogEntry
     {
         public ChangelogItemType Type { get; set; }
-        public string Username { get; set; }
-        public string ComputerName { get; set; }
+        public string Username { get; set; } = null!;
+        public string ComputerName { get; set; } = null!;
         public DateTimeOffset Time { get; set; }
-        public string Note { get; set; }
+        public string Note { get; set; } = null!;
     }
 
     internal enum ChangelogItemType
@@ -67,9 +67,12 @@ internal class PackageUpgrade_1_1_0 : InternalPackageUpgrade
             if(zipArchiveEntry.Name != "save_log.json" || zipArchiveEntry.FullName.Contains("-backup-"))
                 continue;
 
-            SaveLogEntry[] saveLogs;
+            SaveLogEntry[]? saveLogs;
             await using (var saveLogStream = zipArchiveEntry.Open())
                 saveLogs = await JsonSerializer.DeserializeAsync<SaveLogEntry[]>(saveLogStream);
+            
+            if(saveLogs == null)
+                throw new Exception("Unable to load save log file");
 
             var changelogEntries = new ChangelogEntry[saveLogs.Length];
             for (var i = 0; i < saveLogs.Length; i++)

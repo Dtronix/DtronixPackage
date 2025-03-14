@@ -6,19 +6,19 @@ namespace DtronixPackage.RecursiveChangeNotifier;
 
 internal abstract class ChangeListener : INotifyPropertyChanged, INotifyCollectionChanged, IDisposable
 {
-    protected string PropertyName;
+    protected string? PropertyName;
 
     protected abstract void Unsubscribe();
 
 
-    public event PropertyChangedEventHandler PropertyChanged;
+    public event PropertyChangedEventHandler? PropertyChanged;
 
     protected virtual void RaisePropertyChanged(string propertyName)
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
 
-    public event NotifyCollectionChangedEventHandler CollectionChanged;
+    public event NotifyCollectionChangedEventHandler? CollectionChanged;
 
     protected virtual void RaiseCollectionChanged(
         INotifyCollectionChanged collection, NotifyCollectionChangedEventArgs args) =>
