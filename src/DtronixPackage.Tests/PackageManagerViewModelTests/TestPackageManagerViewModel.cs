@@ -101,7 +101,7 @@ namespace DtronixPackage.Tests.PackageManagerViewModelTests
             return result;
         }
 
-        internal override async Task<bool> TryClose()
+        protected internal override async Task<bool> TryClose()
         {
             var result = await base.TryClose();
             CloseComplete.TrySetResult(true);

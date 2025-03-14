@@ -222,7 +222,7 @@ public abstract class PackageManagerViewModel<TPackage, TPackageContent> : INoti
     /// True if close has succeeded closing or the there is no package open.
     /// False if the user has provided input to stop the closing process.
     /// </returns>
-    internal virtual async Task<bool> TryClose()
+    protected internal virtual async Task<bool> TryClose()
     {
         if (Package == null) 
             return true;
